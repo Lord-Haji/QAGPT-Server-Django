@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -163,3 +164,11 @@ CORS_ALLOWED_ORIGINS = [
     # "6189-2a09-bac1-3680-00-47-373.ngrok-free.app",
 ]
 
+
+# Base url to serve media files
+
+MEDIA_URL = '/media/'
+
+# Path where media is stored
+
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')

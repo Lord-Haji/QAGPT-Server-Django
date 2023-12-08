@@ -23,15 +23,19 @@ class ScorecardViewSet(viewsets.ModelViewSet):
 
 class AudioFileViewSet(viewsets.ModelViewSet):
     queryset = AudioFile.objects.all()
-    permission_classes = [IsAuthenticated]
     serializer_class = AudioFileSerializer
+    permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
-    
+
     def get_queryset(self):
+        # Ensures users can only access their own audio files
         return AudioFile.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        # Extract the audio file from the request
+        audio_file = self.request.data.get('audio')
+        # Save the audio file along with the user who uploaded it
+        serializer.save(user=self.request.user, audio=audio_file)
 
 # User registration view
 @api_view(['POST'])
