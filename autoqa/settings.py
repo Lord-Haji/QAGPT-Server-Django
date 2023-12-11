@@ -156,11 +156,7 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    # "6189-2a09-bac1-3680-00-47-373.ngrok-free.app",
-]
+CORS_ALLOWED_ORIGINS = ["*"]
 
 
 # Base url to serve media files
