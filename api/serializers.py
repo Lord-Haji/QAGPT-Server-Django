@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Scorecard, AudioFile
+from .models import Scorecard, AudioFile, Evaluation
 from django.contrib.auth.models import User
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError
@@ -63,6 +63,11 @@ class AudioFileSerializer(serializers.ModelSerializer):
     # def create(self, validated_data):
     #     # You can add additional logic here if needed
     #     return AudioFile.objects.create(**validated_data)
+    
+class EvaluationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Evaluation
+        fields = ['id', 'user', 'audio_files', 'scorecard', 'result', 'created_at', 'completed_at']
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:

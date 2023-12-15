@@ -23,6 +23,17 @@ class AudioFile(models.Model):
 
     def __str__(self):
         return self.file_name
+    
+class Evaluation(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    audio_files = models.ManyToManyField(AudioFile)
+    scorecard = models.ForeignKey(Scorecard, on_delete=models.CASCADE)
+    result = models.JSONField()  # Stores the result of the evaluation
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Evaluation {self.id} by {self.user.username}"
 
 
 
