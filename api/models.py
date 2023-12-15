@@ -34,19 +34,3 @@ class Evaluation(models.Model):
 
     def __str__(self):
         return f"Evaluation {self.id} by {self.user.username}"
-
-
-
-
-
-
-# class EvaluationResult(models.Model):
-#     audio_file = models.ForeignKey(AudioFile, on_delete=models.CASCADE)
-#     scorecard = models.ForeignKey(Scorecard, on_delete=models.SET_NULL, null=True)
-#     result_data = models.JSONField()
-#     evaluated_on = models.DateTimeField(auto_now_add=True)
-#     # Additional fields as needed
-
-#     def __str__(self):
-#         return f"Result for {self.audio_file}"
-
