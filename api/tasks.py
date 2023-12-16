@@ -97,6 +97,5 @@ class ScorecardEvaluator:
             ],
             temperature=0
         )
-        print(response.choices[0].message.content)
         response_dict = json.loads(response.choices[0].message.content)
         return response_dict
