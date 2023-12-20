@@ -84,11 +84,16 @@ def evaluate_audio_files(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_evaluation(request, evaluation_id):
+def get_evaluation(request, evaluation_id=None):
     user = request.user
-    try:
-        evaluation = Evaluation.objects.get(id=evaluation_id, user=user)
-        serializer = EvaluationSerializer(evaluation)
+    if evaluation_id is None:
+        evaluations = Evaluation.objects.filter(user=user)
+        serializer = EvaluationSerializer(evaluations, many=True)
         return Response(serializer.data)
-    except Evaluation.DoesNotExist:
-        return Response({'error': 'Evaluation not found'}, status=404)
+    else:
+        try:
+            evaluation = Evaluation.objects.get(id=evaluation_id, user=user)
+            serializer = EvaluationSerializer(evaluation)
+            return Response(serializer.data)
+        except Evaluation.DoesNotExist:
+            return Response({'error': 'Evaluation not found'}, status=404)

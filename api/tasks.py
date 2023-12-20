@@ -53,7 +53,7 @@ class ScorecardEvaluator:
                 model="whisper-1",
                 file=audio,
                 language="en",
-                prompt="1st Energy, 1st Saver, cooling off period",
+                prompt="1st Energy, 1st Saver, cooling-off period, NMI, MIRN, RACT",
                 temperature=0.3,
                 response_format="text"
             )

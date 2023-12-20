@@ -22,6 +22,7 @@ urlpatterns = [
     
     path('evaluate/', evaluate_audio_files, name='evaluate_audio_files'),
     path('evaluation/<int:evaluation_id>/', get_evaluation, name='get_evaluation'),
+    path('evaluations/', get_evaluation, name='get_evaluation_all'),
 
 ]
  
