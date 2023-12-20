@@ -18,6 +18,7 @@ class AudioFile(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     file_name = models.CharField(max_length=255)  # To store the original file name
     audio = models.FileField(upload_to=user_directory_path, null=True)
+    transcription = models.TextField(null=True, blank=True)
     upload_date = models.DateTimeField(auto_now_add=True)
 
 

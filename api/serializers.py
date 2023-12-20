@@ -61,7 +61,7 @@ class ScorecardSerializer(serializers.ModelSerializer):
 class AudioFileSerializer(serializers.ModelSerializer):
     class Meta:
         model = AudioFile
-        fields = ['id', 'user', 'file_name', 'audio', 'upload_date']
+        fields = ['id', 'user', 'file_name', 'audio', 'transcription', 'upload_date']
         read_only_fields = ['user', 'upload_date']
 
     # def create(self, validated_data):

@@ -43,21 +43,26 @@ class ScorecardEvaluator:
     def __init__(self, scorecard_id, audio_file_id):
         self.scorecard = Scorecard.objects.get(id=scorecard_id)
         self.questions = self.scorecard.questions
-        self.audio_file_path = AudioFile.objects.get(id=audio_file_id).audio.path
+        self.audio_file_object = AudioFile.objects.get(id=audio_file_id)
         self.transcript = ""
         self.questions_and_options = ""
         
     def transcribe(self):
-        with open(self.audio_file_path, "rb") as audio:
-            transcript = client.audio.transcriptions.create(
-                model="whisper-1",
-                file=audio,
-                language="en",
-                prompt="1st Energy, 1st Saver, cooling-off period, NMI, MIRN, RACT",
-                temperature=0.3,
-                response_format="text"
-            )
-        self.transcript = transcript.replace("\n", " ")
+        if not self.audio_file_object.transcription:
+            print("Not found in cache, transcribing.....")
+            with open(self.audio_file_object.audio.path, "rb") as audio:
+                transcript = client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=audio,
+                    language="en",
+                    prompt="1st Energy, 1st Saver, cooling-off period, NMI, MIRN, RACT",
+                    temperature=0.3,
+                    response_format="text"
+                )
+            self.audio_file_object.transcription = transcript.replace("\n", " ")
+            self.audio_file_object.save()
+
+        self.transcript = self.audio_file_object.transcription
         return self.transcript
 
     def construct_prompt(self):
