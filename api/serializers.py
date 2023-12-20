@@ -18,7 +18,11 @@ scorecard_schema = {
                 "items": {"type": "string"},
                 "minItems": 2 # Min 2 options
             },
-            "correct": {"type": "string"}  # Field to indicate the correct option
+            "correct": {
+                "type": "array",  # Now an array of strings
+                "items": {"type": "string"},
+                "minItems": 1     # At least one correct answer
+            }
         },
         "required": ["text", "options", "correct"],
         "additionalProperties": False
@@ -47,8 +51,8 @@ class ScorecardSerializer(serializers.ModelSerializer):
 
         for question in value:
             if 'correct' in question and 'options' in question:
-                if question['correct'] not in question['options']:
-                    raise serializers.ValidationError("The correct answer must be one of the provided options.")
+                if not all(answer in question['options'] for answer in question['correct']):
+                    raise serializers.ValidationError("All correct answers must be among the provided options.")
 
         return value
 
