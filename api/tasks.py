@@ -1,7 +1,7 @@
 from .models import Evaluation, AudioFile, Scorecard
 from django.utils import timezone
 import json
-
+import re
 import google.generativeai as genai
 from openai import OpenAI
 
@@ -24,7 +24,7 @@ def perform_evaluation(user, audio_file_ids, scorecard_id, evaluation):
 
         evaluations.append({
             "audio_file_id": audio_file_id,
-            "responses": evaluator.evaluate()
+            "responses": evaluator.run()
         })
         print("finished evaluating audio file with id: ", audio_file_id)
 
@@ -73,13 +73,9 @@ class ScorecardEvaluator:
         for i, question in enumerate(self.questions):
             text += f"{i+1}. {question['text']} Options: {' or '.join(question['options'])}\n"
         self.questions_and_options = text.strip()
-        print(self.questions_and_options)
         return self.questions_and_options
     
     def evaluate(self):
-        self.transcribe()
-        self.construct_prompt()
-        
         schema_string = [{"question":"string","options":["string"],"llm_response":"string","reason":"string"}]
          
         sys_prompt = (
@@ -89,7 +85,7 @@ class ScorecardEvaluator:
             f"Your Output should be in JSON with the keys being "
             f"question(''), options([]), llm_response('') and reason('')\n"
             f"In the following JSON Schema: for every question:"
-            f"{{'questions': {schema_string}}}"
+            f"{{'scorecard': {schema_string}}}"
             f"With the question and options being the original ones provided and llm_response "
             f"being the option you chose and reason being the reason you chose that option\n"
         )
@@ -109,10 +105,56 @@ class ScorecardEvaluator:
                                       generation_config=generation_config)
 
         response = model.generate_content(messages)
-        print("Hi from Gemini-Pro")
         
-        response_dict = json.loads(response.text.strip('`').replace('json\n', ''))
-        return response_dict
+
+        return response_to_dict(response.text)
+    
+    def qa_comment(self):
+        schema_string = [{"name": "string", "dob": "string", "contactnumber": "string", "email": "string", "postaladdress": "string", "summary": "string", "comment": {"strength": "string", "improvement": "string"}}]
+        prompt = (
+            f"Extract the following data from the transcript: Name, Date Of Birth(DD/MM/YYYY), Contact Number, Email, Postal Address, Contact Number\n"
+            f"Summary: Write a short summary of the call covering all important aspects\n"
+            f"Comment: Provide coaching tips on how the agent improve? Specifically, for insights on areas like communication clarity, empathy, problem-solving efficiency, and handling difficult situations. Also Highlight areas where the Agent's performance is strong and effective.\n"
+            f"If not captured in transcript then the value should be 'Not Found'\n"
+            f"Your Output should be in JSON with the keys being "
+            f"name(''), dob(''), contactnumber(''), email(''), postaladdress(''), summary(''), and comment({{}}).\n"
+            f"In the following JSON Schema: for every question:"
+            f"{{'qa': {schema_string}}}"
+            f"Here is the transcript:\n"
+            f"{self.transcript}\n"
+        )
+        messages = [
+            {'role':'user',
+             'parts': [prompt]}
+        ]
+
+        generation_config = genai.GenerationConfig(
+            temperature=0
+        )
+
+        model = genai.GenerativeModel(model_name="gemini-pro",
+                                      generation_config=generation_config)
+
+        response = model.generate_content(messages)
+        
+        print(response.text)
+
+        return response_to_dict(response.text)
+    
+    def run(self):
+        self.transcribe()
+        self.construct_prompt()
+        evaluation_dict = self.evaluate()
+        qa_dict = self.qa_comment()
+        return {**evaluation_dict, **qa_dict}
+
+def response_to_dict(response_text):
+    
+    formatted_text = re.sub(r'^```JSON\n|```json\n|```$', '', response_text, flags=re.MULTILINE)
+    response_dict = json.loads(formatted_text)
+    
+    
+    return response_dict
     
     # def evaluate_gpt(self):
     #     self.transcribe()
