@@ -20,7 +20,11 @@ class AudioFile(models.Model):
     audio = models.FileField(upload_to=user_directory_path, null=True)
     transcription = models.TextField(null=True, blank=True)
     upload_date = models.DateTimeField(auto_now_add=True)
-
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['id']),
+        ]
 
     def __str__(self):
         return self.file_name

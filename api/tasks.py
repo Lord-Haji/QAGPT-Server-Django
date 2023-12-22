@@ -9,24 +9,17 @@ client = OpenAI()
 
 def perform_evaluation(user, audio_file_ids, scorecard_id, evaluation):
     evaluations = []
-    # scorecard = Scorecard.objects.get(id=scorecard_id)
-    # print(scorecard.questions)
-    for audio_file_id in audio_file_ids:
-        # Fetch the audio file
-        print("Evaluating audio file with id: ", audio_file_id)
-        audio_file = AudioFile.objects.get(id=audio_file_id)
-
-        # Perform evaluation for this audio file
-        # This is a placeholder - replace with your actual evaluation logic
-        # responses = perform_audio_evaluation(audio_file.audio.path)
-        
-        evaluator = ScorecardEvaluator(scorecard_id, audio_file_id)
+    
+    audio_files = AudioFile.objects.filter(id__in=audio_file_ids)
+    
+    for audio_file in audio_files:
+        evaluator = ScorecardEvaluator(scorecard_id, audio_file.id)
 
         evaluations.append({
-            "audio_file_id": audio_file_id,
+            "audio_file_id": audio_file.id,
             "responses": evaluator.run()
         })
-        print("finished evaluating audio file with id: ", audio_file_id)
+        print("finished evaluating audio file with id: ", audio_file.id)
 
     # Update the evaluation with the final result
     final_result = {
@@ -55,8 +48,8 @@ class ScorecardEvaluator:
                     model="whisper-1",
                     file=audio,
                     language="en",
-                    prompt="1st Energy, 1st Saver, cooling-off period, NMI, MIRN, RACT",
-                    temperature=0.3,
+                    # prompt="1st Energy, 1st Saver, cooling-off period, NMI, MIRN, RACT",
+                    temperature=0,
                     response_format="text"
                 )
             self.audio_file_object.transcription = transcript.replace("\n", " ")
@@ -130,8 +123,6 @@ class ScorecardEvaluator:
             "score": score_percentage,
             "responses": detailed_responses
         }
-        
-        print(evaluation_dict)
 
         return evaluation_dict
     
@@ -162,9 +153,6 @@ class ScorecardEvaluator:
                                       generation_config=generation_config)
 
         response = model.generate_content(messages)
-        
-        # print(response.text)
-
         return response_to_dict(response.text)
     
     def run(self):
@@ -178,9 +166,16 @@ def response_to_dict(response_text):
     
     formatted_text = re.sub(r'^```JSON\n|```json\n|```$', '', response_text, flags=re.MULTILINE)
     response_dict = json.loads(formatted_text)
-    
-    
     return response_dict
+
+def transcript_postprocessing(transcript):
+    transcript = transcript.replace("\n", " ")
+    
+    prompt = (
+        f"You are an intelligent assistant specializing in customer support calls"
+        f"your task is to process transcripts of earnings calls, ensuring that all references to"
+    )
+    
     
     # def evaluate_gpt(self):
     #     self.transcribe()
