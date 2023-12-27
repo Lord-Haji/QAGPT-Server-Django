@@ -102,25 +102,23 @@ class ScorecardEvaluator:
 
         evaluation_results = response_to_dict(response.text)
         detailed_responses = []
-        correct_count = 0
+        total_score = 0
 
         for question, ai_response in zip(self.questions, evaluation_results.get('scorecard', [])):
             correct = ai_response['llm_response'] in question['correct']
             if correct:
-                correct_count += 1
+                total_score += question['score']
             detailed_responses.append({
                 "question": question['text'],
                 "options": question['options'],
                 "llm_response": ai_response['llm_response'],
                 "reason": ai_response.get('reason', ''),
-                "correct": correct
+                "correct": correct,
+                "question_score": question['score']
             })
 
-        total_questions = len(self.questions)
-        score_percentage = (correct_count / total_questions) * 100 if total_questions else 0
-
         evaluation_dict = {
-            "score": score_percentage,
+            "score": total_score,
             "responses": detailed_responses
         }
 

@@ -19,15 +19,17 @@ scorecard_schema = {
                 "minItems": 2 # Min 2 options
             },
             "correct": {
-                "type": "array",  # Now an array of strings
+                "type": "array",
                 "items": {"type": "string"},
-                "minItems": 1     # At least one correct answer
-            }
+                "minItems": 1
+            },
+            "score": {"type": "number"}
         },
-        "required": ["text", "options", "correct"],
+        "required": ["text", "options", "correct", "score"],
         "additionalProperties": False
     }
 }
+
 
 
 
@@ -53,6 +55,12 @@ class ScorecardSerializer(serializers.ModelSerializer):
             if 'correct' in question and 'options' in question:
                 if not all(answer in question['options'] for answer in question['correct']):
                     raise serializers.ValidationError("All correct answers must be among the provided options.")
+                
+        # Check if the sum of scores is 100
+        total_score = sum(question.get('score', 0) for question in value)
+        if total_score != 100:
+            raise serializers.ValidationError("The sum of all question scores must be 100.")
+
 
         return value
 
