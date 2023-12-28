@@ -2,8 +2,40 @@ from .models import Evaluation, AudioFile, Scorecard
 from django.utils import timezone
 import json
 import re
+import os
+import io
+from pydub import AudioSegment
 import google.generativeai as genai
 from openai import OpenAI
+
+
+def combine_audio(audio_files):
+    combined = AudioSegment.empty()
+    for file in audio_files:
+        file_content = file.read()
+        sound = AudioSegment.from_file(io.BytesIO(file_content))
+        combined += sound
+
+    # Export combined audio to a byte stream
+    combined_audio_format = 'mp3'  # Change format as needed
+    combined_audio_io = io.BytesIO()
+    combined.export(combined_audio_io, format=combined_audio_format)
+    combined_audio_io.seek(0)  # Reset pointer to the beginning of the byte stream
+
+    return combined_audio_io.read(), combined_audio_format
+
+def generate_combined_filename(audio_files, file_format):
+    # Extracting the base names (without extensions) and concatenating
+    base_names = [os.path.splitext(os.path.basename(file.name))[0] for file in audio_files]
+    combined_name = '__'.join(base_names)
+
+    # Limit the length of the filename to a reasonable number (e.g., 255 characters)
+    max_length = 255 - len(file_format) - 1  # accounting for file extension and dot
+    if len(combined_name) > max_length:
+        combined_name = combined_name[:max_length]
+
+    return f"{combined_name}.{file_format}"
+
 
 client = OpenAI()
 

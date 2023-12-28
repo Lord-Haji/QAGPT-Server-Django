@@ -1,6 +1,7 @@
 import threading
 from django.shortcuts import render
 from django.contrib.auth.models import User
+from django.core.files.base import ContentFile
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -8,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .tasks import perform_evaluation
+from .tasks import perform_evaluation, combine_audio, generate_combined_filename
 from .models import Scorecard, AudioFile, Evaluation
 from .serializers import EvaluationSerializer, ScorecardSerializer, AudioFileSerializer, UserSerializer
 from rest_framework.decorators import api_view, permission_classes
@@ -41,6 +42,30 @@ class AudioFileViewSet(viewsets.ModelViewSet):
         audio_file = self.request.data.get('audio')
         # Save the audio file along with the user who uploaded it
         serializer.save(user=self.request.user, audio=audio_file)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def combine_and_upload_audio(request):
+    user = request.user
+    audio_files = request.FILES.getlist('audio_files')  # Assuming multiple files are uploaded with the same key
+
+    if not audio_files:
+        return Response({'error': 'No audio files provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Call a function to combine the audio files
+    combined_audio, combined_audio_format = combine_audio(audio_files)
+
+    # Saving the combined audio file in AudioFile model
+    combined_filename = generate_combined_filename(audio_files, combined_audio_format)
+    combined_file_content = ContentFile(combined_audio)
+
+    combined_audio_file = AudioFile.objects.create(user=user, audio=combined_file_content, file_name=combined_filename)
+    combined_audio_file.audio.save(combined_filename, combined_file_content)
+
+    return Response({
+        'message': 'Audio files combined successfully',
+        'combined_audio_file_id': combined_audio_file.id
+    })
 
 # User registration view
 @api_view(['POST'])

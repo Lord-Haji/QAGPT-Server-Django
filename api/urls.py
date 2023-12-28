@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ScorecardViewSet, AudioFileViewSet, register, evaluate_audio_files, get_evaluation
+from .views import ScorecardViewSet, AudioFileViewSet, register, evaluate_audio_files, get_evaluation, combine_and_upload_audio
 
 router = DefaultRouter()
 router.register(r'scorecards', ScorecardViewSet)
@@ -20,6 +20,7 @@ urlpatterns = [
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('token/blacklist/', TokenBlacklistView.as_view(), name='token_blacklist'),
     
+    path('combine_and_upload_audio/', combine_and_upload_audio, name='combine_and_upload_audio'),
     path('evaluate/', evaluate_audio_files, name='evaluate_audio_files'),
     path('evaluation/<int:evaluation_id>/', get_evaluation, name='get_evaluation'),
     path('evaluations/', get_evaluation, name='get_evaluation_all'),
