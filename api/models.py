@@ -33,6 +33,7 @@ class Evaluation(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     audio_files = models.ManyToManyField(AudioFile)
     scorecard = models.ForeignKey(Scorecard, on_delete=models.CASCADE)
+    scorecard_title = models.CharField(max_length=100, null=True)
     result = models.JSONField()  # Stores the result of the evaluation
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)

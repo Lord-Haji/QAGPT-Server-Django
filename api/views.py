@@ -69,6 +69,7 @@ def evaluate_audio_files(request):
     evaluation = Evaluation.objects.create(
         user=user,
         scorecard=scorecard,
+        scorecard_title=scorecard.title,
         result={'status': 'processing'}
     )
     evaluation.audio_files.set(audio_files)
