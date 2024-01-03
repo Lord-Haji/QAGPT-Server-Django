@@ -114,6 +114,22 @@ def evaluate_audio_files(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+def get_evaluation(request, evaluation_id=None):
+    user = request.user
+    if evaluation_id is None:
+        evaluations = Evaluation.objects.filter(user=user)
+        serializer = EvaluationSerializer(evaluations, many=True)
+        return Response(serializer.data)
+    else:
+        try:
+            evaluation = Evaluation.objects.get(id=evaluation_id, user=user)
+            serializer = EvaluationSerializer(evaluation)
+            return Response(serializer.data)
+        except Evaluation.DoesNotExist:
+            return Response({'error': 'Evaluation not found'}, status=404)
+        
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def generate_and_retrieve_report(request, evaluation_id):
     try:
         evaluation = Evaluation.objects.get(id=evaluation_id, user=request.user)
@@ -128,19 +144,3 @@ def generate_and_retrieve_report(request, evaluation_id):
 
     # Serve the PDF file as a response
     return FileResponse(evaluation.pdf_report, as_attachment=True, filename=evaluation.pdf_report.name)
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_evaluation(request, evaluation_id=None):
-    user = request.user
-    if evaluation_id is None:
-        evaluations = Evaluation.objects.filter(user=user)
-        serializer = EvaluationSerializer(evaluations, many=True)
-        return Response(serializer.data)
-    else:
-        try:
-            evaluation = Evaluation.objects.get(id=evaluation_id, user=user)
-            serializer = EvaluationSerializer(evaluation)
-            return Response(serializer.data)
-        except Evaluation.DoesNotExist:
-            return Response({'error': 'Evaluation not found'}, status=404)
