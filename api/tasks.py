@@ -12,6 +12,7 @@ from pydub import AudioSegment
 import google.generativeai as genai
 from openai import OpenAI
 
+client = OpenAI()
 
 def combine_audio(audio_files):
     combined = AudioSegment.empty()
@@ -74,8 +75,6 @@ def segment_audio(audio, segment_length_ms=60000):
 
     return segments
 
-client = OpenAI()
-
 def transcribe_audio(audio_file_path):
     with open(audio_file_path, "rb") as audio:
         transcript = client.audio.transcriptions.create(
@@ -103,25 +102,30 @@ def perform_evaluation(user, audio_file_ids, scorecard_id, evaluation):
     
     audio_files = AudioFile.objects.filter(id__in=audio_file_ids)
     
-    for audio_file in audio_files:
-        evaluator = ScorecardEvaluator(scorecard_id, audio_file.id)
+    try:
+        for audio_file in audio_files:
+            evaluator = ScorecardEvaluator(scorecard_id, audio_file.id)
 
-        evaluations.append({
-            "audio_file_id": audio_file.id,
-            "responses": evaluator.run()
-        })
-        print("finished evaluating audio file with id: ", audio_file.id)
+            evaluations.append({
+                "audio_file_id": audio_file.id,
+                "responses": evaluator.run()
+            })
+            print("finished evaluating audio file with id: ", audio_file.id)
 
-    # Update the evaluation with the final result
-    final_result = {
-        "status": "completed",
-        "evaluations": evaluations
-    }
-    Evaluation.objects.filter(id=evaluation.id).update(
-        result=final_result,
-        completed_at=timezone.now()
-    )
-
+        # Update the evaluation with the final result
+        final_result = {
+            "status": "completed",
+            "evaluations": evaluations
+        }
+        Evaluation.objects.filter(id=evaluation.id).update(
+            result=final_result,
+            completed_at=timezone.now()
+        )
+    except Exception as e:
+        print(f"An error occurred during evaluation: {e}")
+        Evaluation.objects.filter(id=evaluation.id).update(
+            status="failed"
+        )
 
 class ScorecardEvaluator:
     def __init__(self, scorecard_id, audio_file_id):
