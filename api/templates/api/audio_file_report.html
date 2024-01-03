@@ -71,8 +71,13 @@
 </head>
 <body>
     <div class="container">
-        <h1>Evaluation Report: Audio File ID {{ audio_file_report.audio_file_id }}</h1>
+        {% for audio_file in evaluation.audio_files.all %}
+            {% if audio_file.id == audio_file_report.audio_file_id %}
+                <h1>Evaluation Report: Audio File "{{ audio_file }}" using Scorecard "{{ evaluation.scorecard_title }}"</h1>
+            {% endif %}
+        {% endfor %}
         <p><strong>Report ID:</strong> {{ evaluation.id }}</p>
+        <p><strong>Scorecard ID:</strong> {{evaluation.scorecard_title}} </p>
         <p><strong>Evaluator:</strong> {{ evaluation.user.username }}</p>
         <p><strong>Created:</strong> {{ evaluation.created_at }}</p>
         <p><strong>Completed:</strong> {{ evaluation.completed_at }}</p>
