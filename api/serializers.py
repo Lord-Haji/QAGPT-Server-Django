@@ -79,7 +79,7 @@ class AudioFileSerializer(serializers.ModelSerializer):
 class EvaluationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Evaluation
-        fields = ['id', 'user', 'audio_files', 'scorecard', 'scorecard_title', 'result', 'pdf_report', 'created_at', 'completed_at']
+        fields = ['id', 'user', 'audio_files', 'scorecard', 'scorecard_title', 'result', 'pdf_report', 'individual_reports', 'created_at', 'completed_at']
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:

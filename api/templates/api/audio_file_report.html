@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Audio File Evaluation Report</title>
+    <style>
+        /* Your existing styles */
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #fafafa;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2, h3, h4 {
+            color: #444;
+        }
+        h1 {
+            border-bottom: 2px solid #444;
+            padding-bottom: 10px;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            padding: 10px;
+            border-radius: 3px;
+            margin-bottom: 10px;
+        }
+        .correct {
+            background-color: #e6ffed;
+            border: 1px solid #a3d9a5;
+        }
+        .incorrect {
+            background-color: #ffe6e6;
+            border: 1px solid #d9a5a3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Audio File Evaluation Report for {{ audio_file_report.audio_file_id }}</h1>
+        <p>Report ID: {{ evaluation.id }}</p>
+        <p>Evaluator: {{ evaluation.user.username }}</p>
+        <p>Created at: {{ evaluation.created_at }}</p>
+        <p>Completed at: {{ evaluation.completed_at }}</p>
+        <h2>Responses</h2>
+        <ul>
+            {% for response in audio_file_report.responses.responses %}
+                <li class="{{ response.correct|yesno:'correct,incorrect' }}">
+                    <p>Question: {{ response.question }}</p>
+                    <p>Answer: {{ response.llm_response }}</p>
+                    <p>Score: {{ response.question_score }}</p>
+                    <p>Reason: {{ response.reason }}</p>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+</html>

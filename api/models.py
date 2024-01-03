@@ -36,6 +36,7 @@ class Evaluation(models.Model):
     scorecard_title = models.CharField(max_length=100, null=True)
     result = models.JSONField()  # Stores the result of the evaluation
     pdf_report = models.FileField(upload_to='evaluation_reports/', null=True, blank=True)
+    individual_reports = models.JSONField(default=dict)
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
 

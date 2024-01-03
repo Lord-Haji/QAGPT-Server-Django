@@ -303,7 +303,29 @@ def generate_pdf_report(evaluation):
 
     # Return the relative path for the FileField in the Evaluation model
     return os.path.join(f'evaluation_reports/{evaluation.id}/', report_filename)
-    
+
+def generate_pdf_report_for_audio_file(audio_file_id, evaluation):
+    # Find the specific report data for the given audio_file_id
+    audio_file_report_data = next((item for item in evaluation.result['evaluations'] if item['audio_file_id'] == audio_file_id), None)
+    if not audio_file_report_data:
+        raise ValueError(f"Report data for audio file ID {audio_file_id} not found in evaluation.")
+
+    # Render the HTML template with the audio file report data and evaluation data
+
+    html_string = render_to_string('api/audio_file_report.html', {'audio_file_report': audio_file_report_data, 'evaluation': evaluation})
+
+    # Define the filename and path for the PDF
+    report_filename = f"audio_file_report_{evaluation.id}_{audio_file_id}.pdf"
+    report_path = os.path.join(settings.MEDIA_ROOT, f'audio_file_reports/{evaluation.id}/{report_filename}')
+
+    # Ensure the directory exists where the report will be saved
+    os.makedirs(os.path.dirname(report_path), exist_ok=True)
+
+    # Convert the rendered HTML string to a PDF
+    HTML(string=html_string).write_pdf(report_path)
+
+    # Return the relative path for the FileField in the Evaluation model
+    return os.path.join(f'audio_file_reports/{evaluation.id}/', report_filename)
     
     # def evaluate_gpt(self):
     #     self.transcribe()
