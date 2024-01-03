@@ -3,63 +3,125 @@
 <head>
     <title>Audio File Evaluation Report</title>
     <style>
-        /* Your existing styles */
-        body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
+        body, html {
+            height: 100%; /* Ensuring the body and html fill the entire page */
             margin: 0;
             padding: 0;
-            background-color: #fafafa;
+            font-family: 'Arial', sans-serif;
+            background-color: #fff; /* Set background to white */
             color: #333;
         }
         .container {
+            min-height: 100%; /* Ensuring container takes at least the full height of the viewport */
+            box-sizing: border-box; /* Include padding in height calculation */
             max-width: 800px;
-            margin: 0 auto;
+            margin: 0 auto; /* Centering the container */
             padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-        h1, h2, h3, h4 {
-            color: #444;
+        h1, h2, h3 {
+            color: #007BFF; /* Blue color for headings */
         }
         h1 {
-            border-bottom: 2px solid #444;
+            border-bottom: 2px solid #007BFF;
             padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        h2 {
+            margin-top: 20px;
+        }
+        ul, p {
+            margin-bottom: 3px;
         }
         ul {
-            list-style-type: none;
-            padding: 0;
+            list-style-type: square;
+            padding-left: 20px;
         }
         li {
             padding: 10px;
             border-radius: 3px;
             margin-bottom: 10px;
+            background-color: #f9f9f9;
+            position: relative;
         }
         .correct {
             background-color: #e6ffed;
-            border: 1px solid #a3d9a5;
+            border-left: 3px solid #28a745; /* Green for correct */
         }
         .incorrect {
             background-color: #ffe6e6;
-            border: 1px solid #d9a5a3;
+            border-left: 3px solid #dc3545; /* Red for incorrect */
+        }
+        .summary, .strengths, .improvements, .performance-responses {
+            display: none;
+        }
+        .has-content {
+            display: block;
+        }
+        .strength-item {
+            background-color: #e6ffed; /* Light green background */
+            border-left-color: #28a745; /* Darker green border */
+        }
+        .improvement-item {
+            background-color: #fff3cd; /* Light yellow background */
+            border-left-color: #ffc107; /* Darker yellow border */
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Audio File Evaluation Report for {{ audio_file_report.audio_file_id }}</h1>
-        <p>Report ID: {{ evaluation.id }}</p>
-        <p>Evaluator: {{ evaluation.user.username }}</p>
-        <p>Created at: {{ evaluation.created_at }}</p>
-        <p>Completed at: {{ evaluation.completed_at }}</p>
-        <h2>Responses</h2>
-        <ul>
-            {% for response in audio_file_report.responses.responses %}
-                <li class="{{ response.correct|yesno:'correct,incorrect' }}">
-                    <p>Question: {{ response.question }}</p>
-                    <p>Answer: {{ response.llm_response }}</p>
-                    <p>Score: {{ response.question_score }}</p>
-                    <p>Reason: {{ response.reason }}</p>
-                </li>
+        <h1>Evaluation Report: Audio File ID {{ audio_file_report.audio_file_id }}</h1>
+        <p><strong>Report ID:</strong> {{ evaluation.id }}</p>
+        <p><strong>Evaluator:</strong> {{ evaluation.user.username }}</p>
+        <p><strong>Created:</strong> {{ evaluation.created_at }}</p>
+        <p><strong>Completed:</strong> {{ evaluation.completed_at }}</p>
+        
+        {% if audio_file_report.responses.qa %}
+        <div class="summary has-content">
+            <h2>QA Evaluation</h2>
+            {% for qa_item in audio_file_report.responses.qa %}
+                <div>
+                    <p><strong>Name:</strong> {{ qa_item.name }}</p>
+                    <p><strong>Email:</strong> {{ qa_item.email }}</p>
+                    <p><strong>Contact:</strong> {{ qa_item.contactnumber }}</p>
+                    <p><strong>Address:</strong> {{ qa_item.postaladdress }}</p>
+                    <p><strong>Summary:</strong> {{ qa_item.summary }}</p>
+                </div>
+                <div class="strengths has-content">
+                    <h3>Strengths</h3>
+                    <ul>
+                        {% for strength in qa_item.comment.strength %}
+                            <li class="strength-item">{{ strength }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="improvements has-content">
+                    <h3>Improvement Areas</h3>
+                    <ul>
+                        {% for improvement in qa_item.comment.improvement %}
+                            <li class="improvement-item">{{ improvement }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
             {% endfor %}
-        </ul>
+        </div>
+        {% endif %}
+
+        {% if audio_file_report.responses.responses %}
+        <div class="performance-responses has-content">
+            <h2>Performance Responses</h2>
+            <ul>
+                {% for response in audio_file_report.responses.responses %}
+                    <li class="{{ response.correct|yesno:'correct,incorrect' }}">
+                        <p><strong>Q:</strong> {{ response.question }}</p>
+                        <p><strong>A:</strong> {{ response.llm_response }} (Score: {{ response.question_score }})</p>
+                        <p><strong>Note:</strong> {{ response.reason }}</p>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
     </div>
 </body>
 </html>

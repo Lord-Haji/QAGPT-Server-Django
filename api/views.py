@@ -158,8 +158,8 @@ def generate_and_retrieve_audio_file_report(request, evaluation_id, audio_file_i
         if not report_path:
             # Generate the report for this audio file 
             report_path = generate_pdf_report_for_audio_file(audio_file_id, evaluation)  # Implement this function
-            evaluation.individual_reports[str(audio_file_id)] = report_path
-            evaluation.save(update_fields=['individual_reports'])
+            # evaluation.individual_reports[str(audio_file_id)] = report_path
+            # evaluation.save(update_fields=['individual_reports'])
 
         # Serve the report
         file_path = os.path.join(settings.MEDIA_ROOT, report_path)
