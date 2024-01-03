@@ -1,5 +1,8 @@
 from .models import Evaluation, AudioFile, Scorecard
 from django.utils import timezone
+from django.conf import settings
+from django.template.loader import render_to_string
+from weasyprint import HTML
 import json
 import re
 import os
@@ -277,18 +280,29 @@ class ScorecardEvaluator:
         return {**evaluation_dict, **qa_dict}
 
 def response_to_dict(response_text):
+    print(response_text)
     
     formatted_text = re.sub(r'^```JSON\n|```json\n|```$', '', response_text, flags=re.MULTILINE)
+    print(formatted_text)
     response_dict = json.loads(formatted_text)
     return response_dict
 
-def transcript_postprocessing(transcript):
-    transcript = transcript.replace("\n", " ")
-    
-    prompt = (
-        f"You are an intelligent assistant specializing in customer support calls"
-        f"your task is to process transcripts of earnings calls, ensuring that all references to"
-    )
+def generate_pdf_report(evaluation):
+    # Render the HTML template with the evaluation data
+    html_string = render_to_string('api/evaluation_report.html', {'evaluation': evaluation})
+
+    # Define the filename and path for the PDF
+    report_filename = f"evaluation_report_{evaluation.id}.pdf"
+    report_path = os.path.join(settings.MEDIA_ROOT, f'evaluation_reports/{evaluation.id}/{report_filename}')
+
+    # Ensure the directory exists where the report will be saved
+    os.makedirs(os.path.dirname(report_path), exist_ok=True)
+
+    # Convert the rendered HTML string to a PDF
+    HTML(string=html_string).write_pdf(report_path)
+
+    # Return the relative path for the FileField in the Evaluation model
+    return os.path.join(f'evaluation_reports/{evaluation.id}/', report_filename)
     
     
     # def evaluate_gpt(self):

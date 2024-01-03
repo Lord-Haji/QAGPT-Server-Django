@@ -1,7 +1,11 @@
 import threading
+import os
 from django.shortcuts import render
+from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.files import File
 from django.core.files.base import ContentFile
+from django.http import FileResponse
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -9,7 +13,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .tasks import perform_evaluation, combine_audio, generate_combined_filename
+from .tasks import perform_evaluation, combine_audio, generate_combined_filename, generate_pdf_report
 from .models import Scorecard, AudioFile, Evaluation
 from .serializers import EvaluationSerializer, ScorecardSerializer, AudioFileSerializer, UserSerializer
 from rest_framework.decorators import api_view, permission_classes
@@ -107,6 +111,23 @@ def evaluate_audio_files(request):
     # Return the evaluation job ID immediately
     serializer = EvaluationSerializer(evaluation)
     return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def generate_and_retrieve_report(request, evaluation_id):
+    try:
+        evaluation = Evaluation.objects.get(id=evaluation_id, user=request.user)
+    except Evaluation.DoesNotExist:
+        return Response({'error': 'Evaluation not found'}, status=404)
+
+    # Generate the report if it doesn't exist
+    if not evaluation.pdf_report:
+        report_path = generate_pdf_report(evaluation)
+        evaluation.pdf_report.save(report_path, File(open(os.path.join(settings.MEDIA_ROOT, report_path), 'rb')))
+        evaluation.save()
+
+    # Serve the PDF file as a response
+    return FileResponse(evaluation.pdf_report, as_attachment=True, filename=evaluation.pdf_report.name)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
