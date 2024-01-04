@@ -1,0 +1,13 @@
+__pycache__
+.git
+.gitignore
+.env
+db.sqlite3
+*.pyc
+.DS_Store
+.idea
+*.log
+.vscode
+temp_segments_directory
+venv
+media
