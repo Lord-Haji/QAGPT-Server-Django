@@ -123,9 +123,7 @@ def perform_evaluation(user, audio_file_ids, scorecard_id, evaluation):
         )
     except Exception as e:
         print(f"An error occurred during evaluation: {e}")
-        Evaluation.objects.filter(id=evaluation.id).update(
-            status="failed"
-        )
+        Evaluation.objects.filter(id=evaluation.id).delete()
 
 class ScorecardEvaluator:
     def __init__(self, scorecard_id, audio_file_id):
