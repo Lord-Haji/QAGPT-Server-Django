@@ -76,6 +76,20 @@ webencodings = "0.5.1"
 zopfli = "0.2.3"
 
 
+[tool.poetry.group.dev.dependencies]
+black = "^23.12.1"
+pyproject-flake8 = "^6.1.0"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.flake8]
+max-line-length = 88
+exclude = [
+    ".git",
+    "__pycache__",
+    "my_excluded_directory",
+    "media",
+    "api/migrations",
+]
