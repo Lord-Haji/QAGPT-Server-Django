@@ -94,20 +94,14 @@
                     <p><strong>Summary:</strong> {{ qa_item.summary }}</p>
                 </div>
                 <div class="strengths has-content">
-                    <h3>Strengths</h3>
-                    <ul>
-                        {% for strength in qa_item.comment.strength %}
-                            <li class="strength-item">{{ strength }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-                <div class="improvements has-content">
-                    <h3>Improvement Areas</h3>
-                    <ul>
-                        {% for improvement in qa_item.comment.improvement %}
-                            <li class="improvement-item">{{ improvement }}</li>
-                        {% endfor %}
-                    </ul>
+                    <div class="strengths has-content">
+                        <h3>Strengths</h3>
+                        <p class="strength-item">{{ qa_item.comment.strength }}</p>
+                    </div>
+                    <div class="improvements has-content">
+                        <h3>Improvement Areas</h3>
+                        <p class="improvement-item">{{ qa_item.comment.improvement }}</p>
+                    </div>
                 </div>
             {% endfor %}
         </div>
