@@ -302,7 +302,9 @@ class ScorecardEvaluator:
         )
         messages = [{"role": "user", "parts": [prompt]}]
 
-        generation_config = genai.GenerationConfig(temperature=0, max_output_tokens=8192)
+        generation_config = genai.GenerationConfig(
+            temperature=0, max_output_tokens=8192
+        )
 
         model = genai.GenerativeModel(
             model_name="gemini-pro", generation_config=generation_config
