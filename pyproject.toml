@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "autoqa-backend-django"
+name = "autoqa"
 version = "1.0.0"
 description = "RESTful Backend API"
 authors = ["Lord-Haji <lordhajisinbox@gmail.com>"]
