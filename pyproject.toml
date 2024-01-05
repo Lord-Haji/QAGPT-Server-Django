@@ -92,4 +92,6 @@ exclude = [
     "my_excluded_directory",
     "media",
     "api/migrations",
+    "autoqa/settings.py"
 ]
+ignore = ["E203"]
