@@ -89,7 +89,8 @@ max-line-length = 88
 exclude = [
     ".git",
     "__pycache__",
-    "my_excluded_directory",
+    ".github",
+    ".vscode",
     "media",
     "api/migrations",
     "autoqa/settings.py"
