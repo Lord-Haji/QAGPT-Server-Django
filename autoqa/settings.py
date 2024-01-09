@@ -110,7 +110,7 @@ WSGI_APPLICATION = "autoqa.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "mydatabase",
+        "NAME": "mytestdb",
         "USER": "postgres",
         "PASSWORD": "postgres",
         "HOST": "localhost",
