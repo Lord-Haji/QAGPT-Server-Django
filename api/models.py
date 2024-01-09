@@ -18,9 +18,11 @@ def user_directory_path(instance, filename):
 
 class AudioFile(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    file_name = models.CharField(max_length=255)  # To store the original file name
+    file_name = models.CharField(max_length=255)
     audio = models.FileField(upload_to=user_directory_path, null=True)
-    transcription = models.TextField(null=True, blank=True)
+    transcription = models.OneToOneField(
+        "Transcript", on_delete=models.CASCADE, null=True, blank=True
+    )
     upload_date = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -30,6 +32,43 @@ class AudioFile(models.Model):
 
     def __str__(self):
         return self.file_name
+
+
+class Transcript(models.Model):
+    audio_file = models.OneToOneField(
+        AudioFile, on_delete=models.CASCADE, related_name="transcript"
+    )
+    text = models.TextField(blank=True)  # Overall transcript text, if needed
+
+    def __str__(self):
+        return f"Transcript for {self.audio_file.file_name}"
+
+
+class Utterance(models.Model):
+    transcript = models.ForeignKey(
+        Transcript, on_delete=models.CASCADE, related_name="utterances"
+    )
+    speaker_label = models.CharField(max_length=2)
+    start_time = models.FloatField()
+    end_time = models.FloatField()
+    confidence = models.FloatField()
+    text = models.TextField()
+
+    def __str__(self):
+        return f"Speaker {self.speaker_label}: {self.text[:30]}..."
+
+
+class Word(models.Model):
+    utterance = models.ForeignKey(
+        Utterance, on_delete=models.CASCADE, related_name="words"
+    )
+    text = models.CharField(max_length=255)
+    confidence = models.FloatField()
+    start_time = models.FloatField()
+    end_time = models.FloatField()
+
+    def __str__(self):
+        return self.text
 
 
 class Evaluation(models.Model):
