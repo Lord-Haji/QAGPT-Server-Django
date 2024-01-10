@@ -1,4 +1,4 @@
-from .models import Evaluation, AudioFile, Scorecard
+from .models import Evaluation, AudioFile, Scorecard, Utterance, Transcript
 from django.utils import timezone
 from django.conf import settings
 from django.template.loader import render_to_string
@@ -7,13 +7,9 @@ import json
 import re
 import os
 import io
-import tempfile
 from pydub import AudioSegment
 import google.generativeai as genai
 import assemblyai as aai
-from openai import OpenAI
-
-client = OpenAI()
 
 
 def combine_audio(audio_files):
@@ -45,71 +41,6 @@ def generate_combined_filename(audio_files, file_format):
         combined_name = combined_name[:max_length]
 
     return f"{combined_name}.{file_format}"
-
-
-# def milliseconds_until_sound(sound, silence_threshold_in_decibels=-20.0, chunk_size=10):
-#     trim_ms = 0  # ms
-#     assert chunk_size > 0  # to avoid infinite loop
-#     while sound[
-#         trim_ms : trim_ms + chunk_size
-#     ].dBFS < silence_threshold_in_decibels and trim_ms < len(sound):
-#         trim_ms += chunk_size
-#     return trim_ms
-
-
-# def trim_start(filepath):
-#     # Determine the format of the audio file
-#     file_extension = os.path.splitext(filepath)[1].lower()
-#     if file_extension not in [".wav", ".mp3"]:
-#         raise ValueError("Unsupported audio format. Only WAV and MP3 are supported.")
-
-#     audio_format = "wav" if file_extension == ".wav" else "mp3"
-#     audio = AudioSegment.from_file(filepath, format=audio_format)
-#     start_trim = milliseconds_until_sound(audio)
-#     trimmed = audio[start_trim:]
-
-#     # Create a temporary file for the trimmed audio
-#     with tempfile.NamedTemporaryFile(
-#         delete=False, suffix=".wav", mode="wb"
-#     ) as temp_audio:
-#         trimmed.export(temp_audio.name, format="wav")
-#         return temp_audio.name
-
-
-# def segment_audio(audio, segment_length_ms=60000):
-#     start_time = 0
-#     segments = []
-
-#     while start_time < len(audio):
-#         segment = audio[start_time : start_time + segment_length_ms]
-#         segments.append(segment)
-#         start_time += segment_length_ms
-
-#     return segments
-
-
-# def transcribe_audio(audio_file_path):
-#     with open(audio_file_path, "rb") as audio:
-#         transcript = client.audio.transcriptions.create(
-#             model="whisper-1",
-#             file=audio,
-#             language="en",
-#             # prompt="1st Energy, 1st Saver, cooling-off period, NMI, MIRN, RACT",
-#             # temperature=0,
-#             response_format="text",
-#         )
-#     return transcript
-
-
-# def clean_transcription(text):
-#     phrases = re.split(r"(?<=[.!?]) +", text)
-#     cleaned_phrases = [phrases[0]]
-#     for i in range(1, len(phrases)):
-#         if phrases[i].lower() != phrases[i - 1].lower():
-#             cleaned_phrases.append(phrases[i])
-#     cleaned_text = " ".join(cleaned_phrases)
-#     cleaned_text = re.sub(r"\s+", " ", cleaned_text)
-#     return cleaned_text.strip()
 
 
 def perform_evaluation(user, audio_file_ids, scorecard_id, evaluation):
@@ -145,17 +76,53 @@ class ScorecardEvaluator:
         self.questions_and_options = ""
 
     def transcribe(self):
-        if not self.audio_file_object.transcription:
+        if self.audio_file_object.transcription is None:
             FILE_URL = self.audio_file_object.audio.path
             config = aai.TranscriptionConfig(speaker_labels=True)
 
             transcriber = aai.Transcriber()
-            transcript = transcriber.transcribe(
-                FILE_URL,
-                config=config
+            transcript_data = transcriber.transcribe(FILE_URL, config=config)
+
+            # Create a new Transcript instance
+            transcript_instance = Transcript.objects.create(
+                audio_file=self.audio_file_object, text=transcript_data.text
             )
-            
-            return "Placeholder Transcript"
+
+            LOW_CONFIDENCE_THRESHOLD = 0.8
+
+            # Populate Utterance models
+            for utterance in transcript_data.utterances:
+                low_conf_words = {}
+
+                for word in utterance.words:
+                    # Check if the confidence is below the threshold
+                    if word.confidence < LOW_CONFIDENCE_THRESHOLD:
+                        low_conf_words[word.text] = {
+                            "confidence": word.confidence,
+                            "start": word.start,
+                            "end": word.end,
+                        }
+                Utterance.objects.create(
+                    transcript=transcript_instance,
+                    speaker_label=utterance.speaker,
+                    start_time=utterance.start,
+                    end_time=utterance.end,
+                    confidence=utterance.confidence,
+                    text=utterance.text,
+                    low_confidence_words=utterance.low_confidence_words,
+                )
+
+            # Update the transcript attribute
+            self.transcript = transcript_data.text
+
+            # Update the AudioFile object to link the Transcript
+            self.audio_file_object.transcription = transcript_instance
+            self.audio_file_object.save()
+
+            return self.transcript
+        else:
+            self.transcript = self.audio_file_object.transcription.text
+            return self.transcript
 
     def construct_prompt(self):
         text = ""

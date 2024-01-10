@@ -39,7 +39,9 @@ class Transcript(models.Model):
         AudioFile, on_delete=models.CASCADE, related_name="transcript"
     )
     text = models.TextField(blank=True)  # Overall transcript text, if needed
-    formatted_text = models.TextField(blank=True)  # Text with Diarization and Timestamps
+    formatted_text = models.TextField(
+        blank=True
+    )  # Text with Diarization and Timestamps
 
     def __str__(self):
         return f"Transcript for {self.audio_file.file_name}"
@@ -54,10 +56,11 @@ class Utterance(models.Model):
     end_time = models.FloatField()
     confidence = models.FloatField()
     text = models.TextField()
-    low_confidence_words = models.JSONField(default=list)  # List of low confidence words
+    low_confidence_words = models.JSONField(default=dict)
 
     def __str__(self):
         return f"Speaker {self.speaker_label}: {self.text[:30]}..."
+
 
 class Evaluation(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
