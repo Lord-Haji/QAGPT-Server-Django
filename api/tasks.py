@@ -43,6 +43,52 @@ def generate_combined_filename(audio_files, file_format):
     return f"{combined_name}.{file_format}"
 
 
+def transcribe(audio_file_object):
+    if audio_file_object.transcription is None:
+        FILE_URL = audio_file_object.audio.path
+        config = aai.TranscriptionConfig(speaker_labels=True)
+
+        transcriber = aai.Transcriber()
+        transcript_data = transcriber.transcribe(FILE_URL, config=config)
+
+        # Create a new Transcript instance
+        transcript_instance = Transcript.objects.create(
+            audio_file=audio_file_object, text=transcript_data.text
+        )
+
+        LOW_CONFIDENCE_THRESHOLD = 0.8
+
+        # Populate Utterance models
+        for utterance in transcript_data.utterances:
+            low_conf_words = {}
+
+            for word in utterance.words:
+                # Check if the confidence is below the threshold
+                if word.confidence < LOW_CONFIDENCE_THRESHOLD:
+                    low_conf_words[word.text] = {
+                        "confidence": word.confidence,
+                        "start": word.start,
+                        "end": word.end,
+                    }
+            Utterance.objects.create(
+                transcript=transcript_instance,
+                speaker_label=utterance.speaker,
+                start_time=utterance.start,
+                end_time=utterance.end,
+                confidence=utterance.confidence,
+                text=utterance.text,
+                low_confidence_words=low_conf_words,
+            )
+
+        # Update the AudioFile object to link the Transcript
+        audio_file_object.transcription = transcript_instance
+        audio_file_object.save()
+
+        return transcript_data.text
+    else:
+        return audio_file_object.transcription.text
+
+
 def perform_evaluation(user, audio_file_ids, scorecard_id, evaluation):
     evaluations = []
 
@@ -76,53 +122,8 @@ class ScorecardEvaluator:
         self.questions_and_options = ""
 
     def transcribe(self):
-        if self.audio_file_object.transcription is None:
-            FILE_URL = self.audio_file_object.audio.path
-            config = aai.TranscriptionConfig(speaker_labels=True)
-
-            transcriber = aai.Transcriber()
-            transcript_data = transcriber.transcribe(FILE_URL, config=config)
-
-            # Create a new Transcript instance
-            transcript_instance = Transcript.objects.create(
-                audio_file=self.audio_file_object, text=transcript_data.text
-            )
-
-            LOW_CONFIDENCE_THRESHOLD = 0.8
-
-            # Populate Utterance models
-            for utterance in transcript_data.utterances:
-                low_conf_words = {}
-
-                for word in utterance.words:
-                    # Check if the confidence is below the threshold
-                    if word.confidence < LOW_CONFIDENCE_THRESHOLD:
-                        low_conf_words[word.text] = {
-                            "confidence": word.confidence,
-                            "start": word.start,
-                            "end": word.end,
-                        }
-                Utterance.objects.create(
-                    transcript=transcript_instance,
-                    speaker_label=utterance.speaker,
-                    start_time=utterance.start,
-                    end_time=utterance.end,
-                    confidence=utterance.confidence,
-                    text=utterance.text,
-                    low_confidence_words=low_conf_words,
-                )
-
-            # Update the transcript attribute
-            self.transcript = transcript_data.text
-
-            # Update the AudioFile object to link the Transcript
-            self.audio_file_object.transcription = transcript_instance
-            self.audio_file_object.save()
-
-            return self.transcript
-        else:
-            self.transcript = self.audio_file_object.transcription.text
-            return self.transcript
+        self.transcript = transcribe(self.audio_file_object)
+        return self.transcript
 
     def construct_prompt(self):
         text = ""
