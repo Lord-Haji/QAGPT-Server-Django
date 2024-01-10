@@ -10,6 +10,7 @@ import io
 import tempfile
 from pydub import AudioSegment
 import google.generativeai as genai
+import assemblyai as aai
 from openai import OpenAI
 
 client = OpenAI()
@@ -46,69 +47,69 @@ def generate_combined_filename(audio_files, file_format):
     return f"{combined_name}.{file_format}"
 
 
-def milliseconds_until_sound(sound, silence_threshold_in_decibels=-20.0, chunk_size=10):
-    trim_ms = 0  # ms
-    assert chunk_size > 0  # to avoid infinite loop
-    while sound[
-        trim_ms : trim_ms + chunk_size
-    ].dBFS < silence_threshold_in_decibels and trim_ms < len(sound):
-        trim_ms += chunk_size
-    return trim_ms
+# def milliseconds_until_sound(sound, silence_threshold_in_decibels=-20.0, chunk_size=10):
+#     trim_ms = 0  # ms
+#     assert chunk_size > 0  # to avoid infinite loop
+#     while sound[
+#         trim_ms : trim_ms + chunk_size
+#     ].dBFS < silence_threshold_in_decibels and trim_ms < len(sound):
+#         trim_ms += chunk_size
+#     return trim_ms
 
 
-def trim_start(filepath):
-    # Determine the format of the audio file
-    file_extension = os.path.splitext(filepath)[1].lower()
-    if file_extension not in [".wav", ".mp3"]:
-        raise ValueError("Unsupported audio format. Only WAV and MP3 are supported.")
+# def trim_start(filepath):
+#     # Determine the format of the audio file
+#     file_extension = os.path.splitext(filepath)[1].lower()
+#     if file_extension not in [".wav", ".mp3"]:
+#         raise ValueError("Unsupported audio format. Only WAV and MP3 are supported.")
 
-    audio_format = "wav" if file_extension == ".wav" else "mp3"
-    audio = AudioSegment.from_file(filepath, format=audio_format)
-    start_trim = milliseconds_until_sound(audio)
-    trimmed = audio[start_trim:]
+#     audio_format = "wav" if file_extension == ".wav" else "mp3"
+#     audio = AudioSegment.from_file(filepath, format=audio_format)
+#     start_trim = milliseconds_until_sound(audio)
+#     trimmed = audio[start_trim:]
 
-    # Create a temporary file for the trimmed audio
-    with tempfile.NamedTemporaryFile(
-        delete=False, suffix=".wav", mode="wb"
-    ) as temp_audio:
-        trimmed.export(temp_audio.name, format="wav")
-        return temp_audio.name
-
-
-def segment_audio(audio, segment_length_ms=60000):
-    start_time = 0
-    segments = []
-
-    while start_time < len(audio):
-        segment = audio[start_time : start_time + segment_length_ms]
-        segments.append(segment)
-        start_time += segment_length_ms
-
-    return segments
+#     # Create a temporary file for the trimmed audio
+#     with tempfile.NamedTemporaryFile(
+#         delete=False, suffix=".wav", mode="wb"
+#     ) as temp_audio:
+#         trimmed.export(temp_audio.name, format="wav")
+#         return temp_audio.name
 
 
-def transcribe_audio(audio_file_path):
-    with open(audio_file_path, "rb") as audio:
-        transcript = client.audio.transcriptions.create(
-            model="whisper-1",
-            file=audio,
-            language="en",
-            # prompt="1st Energy, 1st Saver, cooling-off period, NMI, MIRN, RACT",
-            # temperature=0,
-            response_format="text",
-        )
-    return transcript
+# def segment_audio(audio, segment_length_ms=60000):
+#     start_time = 0
+#     segments = []
+
+#     while start_time < len(audio):
+#         segment = audio[start_time : start_time + segment_length_ms]
+#         segments.append(segment)
+#         start_time += segment_length_ms
+
+#     return segments
 
 
-def clean_transcription(text):
-    phrases = re.split(r"(?<=[.!?]) +", text)
-    cleaned_phrases = [phrases[0]]
-    for i in range(1, len(phrases)):
-        if phrases[i].lower() != phrases[i - 1].lower():
-            cleaned_phrases.append(phrases[i])
-    cleaned_text = " ".join(cleaned_phrases)
-    cleaned_text = re.sub(r"\s+", " ", cleaned_text)
-    return cleaned_text.strip()
+# def transcribe_audio(audio_file_path):
+#     with open(audio_file_path, "rb") as audio:
+#         transcript = client.audio.transcriptions.create(
+#             model="whisper-1",
+#             file=audio,
+#             language="en",
+#             # prompt="1st Energy, 1st Saver, cooling-off period, NMI, MIRN, RACT",
+#             # temperature=0,
+#             response_format="text",
+#         )
+#     return transcript
+
+
+# def clean_transcription(text):
+#     phrases = re.split(r"(?<=[.!?]) +", text)
+#     cleaned_phrases = [phrases[0]]
+#     for i in range(1, len(phrases)):
+#         if phrases[i].lower() != phrases[i - 1].lower():
+#             cleaned_phrases.append(phrases[i])
+#     cleaned_text = " ".join(cleaned_phrases)
+#     cleaned_text = re.sub(r"\s+", " ", cleaned_text)
+#     return cleaned_text.strip()
 
 
 def perform_evaluation(user, audio_file_ids, scorecard_id, evaluation):
@@ -145,64 +146,16 @@ class ScorecardEvaluator:
 
     def transcribe(self):
         if not self.audio_file_object.transcription:
-            print("Not found in cache, transcribing.....")
+            FILE_URL = self.audio_file_object.audio.path
+            config = aai.TranscriptionConfig(speaker_labels=True)
 
-            # Trim the original audio file
-            trimmed_audio_path = trim_start(self.audio_file_object.audio.path)
-            audio_format = os.path.splitext(self.audio_file_object.audio.path)[
-                1
-            ].lower()[
-                1:
-            ]  # 'wav' or 'mp3'
-            trimmed_audio = AudioSegment.from_file(
-                trimmed_audio_path, format=audio_format
+            transcriber = aai.Transcriber()
+            transcript = transcriber.transcribe(
+                FILE_URL,
+                config=config
             )
-
-            # Segment the trimmed audio into a temporary directory
-            one_minute = 60 * 1000  # Duration for each segment in milliseconds
-            start_time = 0
-            i = 0
-            temp_segments_dir = (
-                "temp_segments_directory"  # Temporary directory for audio segments
-            )
-
-            if not os.path.isdir(temp_segments_dir):
-                os.makedirs(temp_segments_dir)
-
-            while start_time < len(trimmed_audio):
-                segment = trimmed_audio[start_time : start_time + one_minute]
-                segment_filename = f"temp_segment_{i:02d}.{audio_format}"
-                segment_path = os.path.join(temp_segments_dir, segment_filename)
-                segment.export(segment_path, format=audio_format)
-                start_time += one_minute
-                i += 1
-
-            # Transcribe each audio segment
-            audio_files = sorted(
-                [
-                    f
-                    for f in os.listdir(temp_segments_dir)
-                    if f.endswith(f".{audio_format}")
-                ],
-                key=lambda f: int("".join(filter(str.isdigit, f))),
-            )
-            transcriptions = [
-                transcribe_audio(os.path.join(temp_segments_dir, file))
-                for file in audio_files
-            ]
-
-            # Concatenate and save the transcription
-            full_transcript = clean_transcription(" ".join(transcriptions))
-            self.audio_file_object.transcription = full_transcript
-            self.audio_file_object.save()
-
-            # Clean up: Remove the temporary audio segment files
-            os.remove(trimmed_audio_path)
-            for file in audio_files:
-                os.remove(os.path.join(temp_segments_dir, file))
-
-        self.transcript = self.audio_file_object.transcription
-        return self.transcript
+            
+            return "Placeholder Transcript"
 
     def construct_prompt(self):
         text = ""
