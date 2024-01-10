@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Scorecard, AudioFile, Evaluation
+from .models import Scorecard, AudioFile, Transcript, Utterance, Evaluation
 from django.contrib.auth.models import User
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError
@@ -62,7 +62,30 @@ class ScorecardSerializer(serializers.ModelSerializer):
         return value
 
 
+class UtteranceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Utterance
+        fields = [
+            "speaker_label",
+            "start_time",
+            "end_time",
+            "confidence",
+            "text",
+            "low_confidence_words",
+        ]
+
+
+class TranscriptSerializer(serializers.ModelSerializer):
+    utterances = UtteranceSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Transcript
+        fields = ["audio_file", "text", "formatted_text", "utterances"]
+
+
 class AudioFileSerializer(serializers.ModelSerializer):
+    transcription = TranscriptSerializer(read_only=True)
+
     class Meta:
         model = AudioFile
         fields = ["id", "user", "file_name", "audio", "transcription", "upload_date"]
