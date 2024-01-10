@@ -29,5 +29,5 @@ jobs:
         echo "$HOME/.local/bin" >> $GITHUB_PATH
     - name: Install dependencies with Poetry
       run: poetry install
-    - name: Lint with pflake8
+    - name: Lint with flake8
       run: poetry run pflake8
