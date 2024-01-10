@@ -109,7 +109,7 @@ class ScorecardEvaluator:
                     end_time=utterance.end,
                     confidence=utterance.confidence,
                     text=utterance.text,
-                    low_confidence_words=utterance.low_confidence_words,
+                    low_confidence_words=low_conf_words,
                 )
 
             # Update the transcript attribute
