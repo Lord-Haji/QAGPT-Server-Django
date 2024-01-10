@@ -19,12 +19,14 @@ from .tasks import (
     generate_pdf_report,
     generate_pdf_report_for_audio_file,
 )
-from .models import Scorecard, AudioFile, Evaluation
+from .models import Scorecard, AudioFile, Evaluation, Transcript, Utterance
 from .serializers import (
     EvaluationSerializer,
     ScorecardSerializer,
     AudioFileSerializer,
     UserSerializer,
+    TranscriptSerializer,
+    UtteranceSerializer,
 )
 
 
@@ -105,6 +107,30 @@ def register(request):
             }
         )
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_utterance_with_transcript(request, audio_file_id):
+    try:
+        transcript = Transcript.objects.get(audio_file_id=audio_file_id)
+    except Transcript.DoesNotExist:
+        return Response({"error": "Transcript not found"}, status=404)
+
+    try:
+        utterance = Utterance.objects.filter(transcript_id=transcript.id)
+    except Utterance.DoesNotExist:
+        return Response({"error": "Utterance not found"}, status=404)
+
+    transcript_serializer = TranscriptSerializer(transcript)
+    utterance_serializer = UtteranceSerializer(utterance, many=True)
+
+    data = {
+        "transcript": transcript_serializer.data,
+        "utterance": utterance_serializer.data,
+    }
+
+    return Response(data)
 
 
 @api_view(["POST"])

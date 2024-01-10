@@ -80,7 +80,7 @@ class TranscriptSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Transcript
-        fields = ["audio_file", "text", "formatted_text", "utterances"]
+        fields = ["audio_file", "text", "utterances"]
 
 
 class AudioFileSerializer(serializers.ModelSerializer):
