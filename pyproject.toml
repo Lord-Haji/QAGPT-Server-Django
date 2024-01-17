@@ -76,6 +76,7 @@ webencodings = "0.5.1"
 zopfli = "0.2.3"
 gunicorn = "^21.2.0"
 assemblyai = "^0.20.2"
+langchain-google-genai = "^0.0.6"
 
 
 [tool.poetry.group.dev.dependencies]

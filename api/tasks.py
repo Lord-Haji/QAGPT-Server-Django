@@ -8,7 +8,7 @@ import re
 import os
 import io
 from pydub import AudioSegment
-import google.generativeai as genai
+from langchain_google_genai import ChatGoogleGenerativeAI
 import assemblyai as aai
 
 
@@ -161,18 +161,15 @@ class ScorecardEvaluator:
         user_prompt = f"Here is the transcript: \n{self.transcript}"
         prompt = f"{sys_prompt}\n{user_prompt}"
 
-        messages = [{"role": "user", "parts": [prompt]}]
+        # messages = [{"role": "user", "parts": [prompt]}]
 
-        generation_config = genai.GenerationConfig(temperature=0)
-
-        model = genai.GenerativeModel(
-            model_name="gemini-pro", generation_config=generation_config
+        llm = ChatGoogleGenerativeAI(
+            model="gemini-pro",
+            temperature=0.0,
+            max_output_tokens=8192,
         )
-
-        response = model.generate_content(messages)
-
-        print(response.prompt_feedback)
-        evaluation_results = response_to_dict(response.text)
+        response = llm.invoke(prompt)
+        evaluation_results = response_to_dict(response.content)
         detailed_responses = []
         total_score = 0
 
@@ -221,18 +218,16 @@ class ScorecardEvaluator:
             f"Here is the transcript:\n"
             f"{self.transcript}\n"
         )
-        messages = [{"role": "user", "parts": [prompt]}]
+        # messages = [{"role": "user", "parts": [prompt]}]
 
-        generation_config = genai.GenerationConfig(
-            temperature=0, max_output_tokens=8192
+        llm = ChatGoogleGenerativeAI(
+            model="gemini-pro",
+            temperature=0.0,
+            # max_output_tokens=8192,
         )
 
-        model = genai.GenerativeModel(
-            model_name="gemini-pro", generation_config=generation_config
-        )
-
-        response = model.generate_content(messages)
-        return response_to_dict(response.text)
+        response = llm.invoke(prompt)
+        return response_to_dict(response.content)
 
     def run(self):
         self.transcribe()
@@ -243,12 +238,9 @@ class ScorecardEvaluator:
 
 
 def response_to_dict(response_text):
-    print(response_text)
-
     formatted_text = re.sub(
         r"^```JSON\n|```json\n|```$", "", response_text, flags=re.MULTILINE
     )
-    print(formatted_text)
     response_dict = json.loads(formatted_text)
     return response_dict
 
