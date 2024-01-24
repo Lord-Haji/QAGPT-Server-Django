@@ -177,6 +177,7 @@ class ScorecardEvaluator:
             self.questions, evaluation_results.get("scorecard", [])
         ):
             correct = ai_response["llm_response"] in question["correct"]
+
             if correct:
                 total_score += question["score"]
             detailed_responses.append(
@@ -213,7 +214,7 @@ class ScorecardEvaluator:
             f"If not captured in transcript then the value should be 'Not Found'\n"
             f"Your Output should be in JSON with the keys being "
             f"name(''), dob(''), contactnumber(''), email(''), postaladdress(''), summary(''), and comment({{}}).\n"  # noqa: E501
-            f"In the following JSON Schema: for every question:"
+            f"In the following JSON Schema:"
             f"{{'qa': {schema_string}}}"
             f"Here is the transcript:\n"
             f"{self.transcript}\n"
