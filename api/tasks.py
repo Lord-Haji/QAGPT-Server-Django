@@ -71,7 +71,15 @@ def get_context(user, query):
 def transcribe(audio_file_object):
     if audio_file_object.transcription is None:
         FILE_URL = audio_file_object.audio.path
-        config = aai.TranscriptionConfig(speaker_labels=True)
+        config = aai.TranscriptionConfig(speaker_labels=True).set_redact_pii(
+            policies=[
+                aai.PIIRedactionPolicy.credit_card_number,
+                aai.PIIRedactionPolicy.credit_card_expiration,
+                aai.PIIRedactionPolicy.credit_card_cvv,
+            ],
+            redact_audio=True,
+        )
+            
 
         transcriber = aai.Transcriber()
         transcript_data = transcriber.transcribe(FILE_URL, config=config)
