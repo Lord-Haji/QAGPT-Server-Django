@@ -63,7 +63,8 @@ def get_context(user, query):
         relevant_documents = retriever.get_relevant_documents(query)
         extracted_content = [doc.page_content for doc in relevant_documents]
         return ",".join(extracted_content)
-    except Exception:  # replace with the actual expected exception
+    except Exception as e:  # replace with the actual expected exception
+        print(f"An error occurred while getting context: {e}")
         return None
 
 
