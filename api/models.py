@@ -16,6 +16,25 @@ def user_directory_path(instance, filename):
     return "{0}/{1}".format(instance.user.username, filename)
 
 
+def user_knowledge_base_directory_path(instance, filename):
+    # File will be uploaded to MEDIA_ROOT/user_<id>/knowledge_bases/<filename>
+    return "{0}/knowledge_bases/{1}".format(instance.user.username, filename)
+
+
+class KnowledgeBase(models.Model):
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="knowledge_base"
+    )
+    pdf = models.FileField(
+        upload_to=user_knowledge_base_directory_path, null=True, blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Knowledge Base of {self.user.username}"
+
+
 class AudioFile(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     file_name = models.CharField(max_length=255)

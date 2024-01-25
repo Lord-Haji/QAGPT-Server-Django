@@ -8,8 +8,11 @@ import re
 import os
 import io
 from pydub import AudioSegment
-from langchain_google_genai import ChatGoogleGenerativeAI
 import assemblyai as aai
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain_community.document_loaders import PyMuPDFLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 
 def combine_audio(audio_files):
@@ -41,6 +44,27 @@ def generate_combined_filename(audio_files, file_format):
         combined_name = combined_name[:max_length]
 
     return f"{combined_name}.{file_format}"
+
+
+def get_context(user, query):
+    if not user.knowledge_base or not user.knowledge_base.pdf:
+        return None
+
+    try:
+        loader = PyMuPDFLoader(user.knowledge_base.pdf.path)
+        documents = loader.load()
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=125, chunk_overlap=25)
+        splitted_documents = text_splitter.split_documents(documents)
+        vectorstore = FAISS.from_documents(
+            splitted_documents,
+            embedding=GoogleGenerativeAIEmbeddings(model="models/embedding-001"),
+        )
+        retriever = vectorstore.as_retriever()
+        relevant_documents = retriever.get_relevant_documents(query)
+        extracted_content = [doc.page_content for doc in relevant_documents]
+        return ",".join(extracted_content)
+    except Exception:  # replace with the actual expected exception
+        return None
 
 
 def transcribe(audio_file_object):
@@ -127,14 +151,25 @@ class ScorecardEvaluator:
 
     def construct_prompt(self):
         text = ""
-        for question in self.questions:
-            text += f"{question['text']} Options: {' or '.join(question['options'])}\n"
 
         for i, question in enumerate(self.questions):
-            text += (
+            question_prompt = ""
+            question_prompt += (
                 f"{i+1}. {question['text']} Options: "
-                f"{' or '.join(question['options'])}\n"
+                f"{' or '.join(question['options'])}"
             )
+
+            if question.get("use_knowledge_base", False):
+                # Specific instruction or context for using the knowledge base
+                # Replace 'Specific Context/Instruction' with actual content as needed
+                context = get_context(self.scorecard.user, question["text"])
+                if context:
+                    question_prompt += (
+                        f" [For this question specifically, use the following additional "
+                        f"context: ####{context}####]"
+                    )
+
+            text += question_prompt + "\n"
         self.questions_and_options = text.strip()
         return self.questions_and_options
 
