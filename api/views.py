@@ -20,8 +20,9 @@ from .tasks import (
     generate_pdf_report_for_audio_file,
     transcribe,
 )
-from .models import Scorecard, AudioFile, Evaluation, Transcript, Utterance
+from .models import Category, Scorecard, AudioFile, Evaluation, Transcript, Utterance
 from .serializers import (
+    CategorySerializer,
     EvaluationSerializer,
     ScorecardSerializer,
     AudioFileSerializer,
@@ -30,6 +31,16 @@ from .serializers import (
     UtteranceSerializer,
 )
 
+class CategoryViewSet(viewsets.ModelViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Category.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 class ScorecardViewSet(viewsets.ModelViewSet):
     queryset = Scorecard.objects.all()
