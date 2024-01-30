@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import (
+    Category,
     Scorecard,
     AudioFile,
     Evaluation,
@@ -8,7 +9,7 @@ from .models import (
     KnowledgeBase,
 )
 
-
+admin.site.register(Category)
 admin.site.register(Scorecard)
 admin.site.register(AudioFile)
 admin.site.register(Evaluation)
