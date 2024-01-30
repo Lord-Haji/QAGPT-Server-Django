@@ -165,7 +165,6 @@ def evaluate_audio_files(request):
     except Scorecard.DoesNotExist:
         print(f"No Scorecard found with id: {scorecard_id}")
 
-
     # Create a placeholder evaluation object
     evaluation = Evaluation.objects.create(
         user=user,

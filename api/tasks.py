@@ -173,9 +173,7 @@ def perform_evaluation(user, audio_file_ids, scorecard_id=None, evaluation=None)
         for audio_file in audio_files:
             evaluator = ScorecardEvaluator(user, audio_file.id, scorecard_id)
             responses = evaluator.run()
-            evaluations.append(
-                {"audio_file_id": audio_file.id, "responses": responses}
-            )
+            evaluations.append({"audio_file_id": audio_file.id, "responses": responses})
             print("finished evaluating audio file with id: ", audio_file.id)
 
         # Update the evaluation with the final result
@@ -331,9 +329,7 @@ class ScorecardEvaluator:
         )
 
         response = result.response
-        response = response[
-            response.find("{") : response.rfind("}") + 1
-        ]
+        response = response[response.find("{") : response.rfind("}") + 1]
         return response_to_dict(response)
 
     def run(self):
@@ -344,7 +340,6 @@ class ScorecardEvaluator:
         self.construct_prompt()
         evaluation_dict = self.evaluate()
         qa_dict = self.qa_comment()
-        result = {**evaluation_dict, **qa_dict}
         return {**evaluation_dict, **qa_dict}
 
 
