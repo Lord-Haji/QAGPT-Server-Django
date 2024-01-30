@@ -35,15 +35,22 @@ scorecard_schema = {
     },
 }
 
+
 class CategorySerializer(serializers.ModelSerializer):
+    keywords = serializers.ListField(
+        child=serializers.CharField(max_length=100)
+    )
     class Meta:
         model = Category
         fields = ["id", "name", "keywords"]
 
+
 class ScorecardSerializer(serializers.ModelSerializer):
+    category = CategorySerializer(read_only=True)
+
     class Meta:
         model = Scorecard
-        fields = ["id", "title", "questions"]
+        fields = ["id", "title", "category", "questions"]
 
     def validate_questions(self, value):
         # Convert value to Python object if it's a string
