@@ -1,4 +1,4 @@
-from .models import Evaluation, AudioFile, Scorecard, Utterance, Transcript
+from .models import Evaluation, AudioFile, Category, Scorecard, Utterance, Transcript
 from django.utils import timezone
 from django.conf import settings
 from django.template.loader import render_to_string
@@ -79,7 +79,6 @@ def transcribe(audio_file_object):
             ],
             redact_audio=True,
         )
-            
 
         transcriber = aai.Transcriber()
         transcript_data = transcriber.transcribe(FILE_URL, config=config)
@@ -122,7 +121,31 @@ def transcribe(audio_file_object):
         return audio_file_object.transcription.text
 
 
-def perform_evaluation(user, audio_file_ids, scorecard_id, evaluation):
+def compile_patterns(user):
+    categories = Category.objects.filter(user=user)
+    compiled_patterns = {}
+    for category in categories:
+        compiled_patterns[category.name] = [
+            re.compile(r"\b" + re.escape(kw.lower()) + r"\b")
+            for kw in category.keywords
+        ]
+    return compiled_patterns
+
+
+def match_keywords(text, patterns):
+    return sum(bool(pattern.search(text)) for pattern in patterns)
+
+
+def categorize_text(text, user):
+    patterns = compile_patterns(user)
+    text = text.lower()
+    best_match = max(
+        patterns.items(), key=lambda x: match_keywords(text, x[1]), default=(None,)
+    )[0]
+    return best_match
+
+
+def perform_evaluation(user, audio_file_ids, evaluation, scorecard_id=None):
     evaluations = []
 
     audio_files = AudioFile.objects.filter(id__in=audio_file_ids)
@@ -147,16 +170,37 @@ def perform_evaluation(user, audio_file_ids, scorecard_id, evaluation):
 
 
 class ScorecardEvaluator:
-    def __init__(self, scorecard_id, audio_file_id):
-        self.scorecard = Scorecard.objects.get(id=scorecard_id)
-        self.questions = self.scorecard.questions
+    def __init__(self, user, audio_file_id, scorecard_id=None, category_name=None):
+        self.user = user
         self.audio_file_object = AudioFile.objects.get(id=audio_file_id)
+
+        if scorecard_id:
+            self.scorecard = Scorecard.objects.get(id=scorecard_id)
+        elif category_name:
+            try:
+                category = Category.objects.get(user=user, name=category_name)
+                self.scorecard = category.scorecard
+            except Category.DoesNotExist:
+                self.scorecard = None
+        else:
+            self.scorecard = None
+
         self.transcript = ""
         self.questions_and_options = ""
+        self.questions = self.scorecard.questions if self.scorecard else []
 
     def transcribe(self):
         self.transcript = transcribe(self.audio_file_object)
         return self.transcript
+
+    def categorize_and_assign_scorecard(self):
+        # Assume transcription is already done, so categorize based on the existing transcript
+        category_name = categorize_text(self.transcript, self.user)
+        try:
+            category = Category.objects.get(user=self.user, name=category_name)
+            self.scorecard = category.scorecard
+        except Category.DoesNotExist:
+            self.scorecard = None
 
     def construct_prompt(self):
         text = ""
@@ -174,7 +218,8 @@ class ScorecardEvaluator:
                 context = get_context(self.scorecard.user, question["text"])
                 if context:
                     question_prompt += (
-                        f" [For this question specifically, use the following additional "
+                        f"[For this question specifically, "
+                        "use the following additional "
                         f"context: ####{context}####]"
                     )
 
@@ -276,6 +321,9 @@ class ScorecardEvaluator:
 
     def run(self):
         self.transcribe()
+        # Categorize and assign a scorecard if none is set
+        if self.scorecard is None:
+            self.categorize_and_assign_scorecard()
         self.construct_prompt()
         evaluation_dict = self.evaluate()
         qa_dict = self.qa_comment()

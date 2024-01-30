@@ -160,7 +160,7 @@ def evaluate_audio_files(request):
 
     # Start the evaluation in a background thread
     evaluation_thread = threading.Thread(
-        target=perform_evaluation, args=(user, audio_file_ids, scorecard_id, evaluation)
+        target=perform_evaluation, args=(user, audio_file_ids, evaluation, scorecard_id)
     )
     evaluation_thread.start()
 
