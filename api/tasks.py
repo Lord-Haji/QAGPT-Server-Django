@@ -341,10 +341,12 @@ class ScorecardEvaluator:
         qa_dict = self.qa_comment()
         return {**evaluation_dict, **qa_dict}
 
+
 def simple_json_postprocessor(text):
     formatted_text = text
     formatted_text = text[text.find("{") : text.rfind("}") + 1]
     return formatted_text
+
 
 def response_to_dict(response_text):
     # formatted_text = re.sub(
