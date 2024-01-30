@@ -37,9 +37,8 @@ scorecard_schema = {
 
 
 class CategorySerializer(serializers.ModelSerializer):
-    keywords = serializers.ListField(
-        child=serializers.CharField(max_length=100)
-    )
+    keywords = serializers.ListField(child=serializers.CharField(max_length=100))
+
     class Meta:
         model = Category
         fields = ["id", "name", "keywords"]
