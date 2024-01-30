@@ -194,7 +194,6 @@ class ScorecardEvaluator:
         return self.transcript
 
     def categorize_and_assign_scorecard(self):
-        # Assume transcription is already done, so categorize based on the existing transcript
         category_name = categorize_text(self.transcript, self.user)
         try:
             category = Category.objects.get(user=self.user, name=category_name)
