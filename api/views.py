@@ -31,6 +31,7 @@ from .serializers import (
     UtteranceSerializer,
 )
 
+
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
@@ -41,6 +42,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
 
 class ScorecardViewSet(viewsets.ModelViewSet):
     queryset = Scorecard.objects.all()
