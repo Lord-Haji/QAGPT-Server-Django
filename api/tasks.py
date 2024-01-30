@@ -164,17 +164,17 @@ def categorize_text(text, user):
     return best_match
 
 
-def perform_evaluation(user, audio_file_ids, evaluation, scorecard_id=None):
+def perform_evaluation(user, audio_file_ids, scorecard_id=None, evaluation=None):
     evaluations = []
 
     audio_files = AudioFile.objects.filter(id__in=audio_file_ids)
 
     try:
         for audio_file in audio_files:
-            evaluator = ScorecardEvaluator(scorecard_id, audio_file.id)
-
+            evaluator = ScorecardEvaluator(user, audio_file.id, scorecard_id)
+            responses = evaluator.run()
             evaluations.append(
-                {"audio_file_id": audio_file.id, "responses": evaluator.run()}
+                {"audio_file_id": audio_file.id, "responses": responses}
             )
             print("finished evaluating audio file with id: ", audio_file.id)
 
@@ -192,7 +192,6 @@ class ScorecardEvaluator:
     def __init__(self, user, audio_file_id, scorecard_id=None, category_name=None):
         self.user = user
         self.audio_file_object = AudioFile.objects.get(id=audio_file_id)
-
         if scorecard_id:
             self.scorecard = Scorecard.objects.get(id=scorecard_id)
         elif category_name:
@@ -222,7 +221,6 @@ class ScorecardEvaluator:
 
     def construct_prompt(self):
         text = ""
-
         for i, question in enumerate(self.questions):
             question_prompt = ""
             question_prompt += (
@@ -323,19 +321,20 @@ class ScorecardEvaluator:
             f"name(''), dob(''), contactnumber(''), email(''), postaladdress(''), summary(''), and comment({{}}).\n"  # noqa: E501
             f"In the following JSON Schema:"
             f"{{'qa': {schema_string}}}"
-            f"Here is the transcript:\n"
-            f"{self.transcript}\n"
         )
-        # messages = [{"role": "user", "parts": [prompt]}]
 
-        llm = ChatGoogleGenerativeAI(
-            model="gemini-pro",
+        result = aai.Lemur().task(
+            prompt=prompt,
+            final_model=aai.LemurModel.default,
+            input_text=self.transcript,
             temperature=0.0,
-            # max_output_tokens=8192,
         )
 
-        response = llm.invoke(prompt)
-        return response_to_dict(response.content)
+        response = result.response
+        response = response[
+            response.find("{") : response.rfind("}") + 1
+        ]
+        return response_to_dict(response)
 
     def run(self):
         self.transcribe()
@@ -345,6 +344,7 @@ class ScorecardEvaluator:
         self.construct_prompt()
         evaluation_dict = self.evaluate()
         qa_dict = self.qa_comment()
+        result = {**evaluation_dict, **qa_dict}
         return {**evaluation_dict, **qa_dict}
 
 

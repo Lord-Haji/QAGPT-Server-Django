@@ -160,7 +160,11 @@ def evaluate_audio_files(request):
     scorecard_id = request.data.get("scorecard_id")
 
     audio_files = AudioFile.objects.filter(id__in=audio_file_ids, user=user)
-    scorecard = Scorecard.objects.get(id=scorecard_id, user=user)
+    try:
+        scorecard = Scorecard.objects.get(id=scorecard_id)
+    except Scorecard.DoesNotExist:
+        print(f"No Scorecard found with id: {scorecard_id}")
+
 
     # Create a placeholder evaluation object
     evaluation = Evaluation.objects.create(
@@ -170,10 +174,9 @@ def evaluate_audio_files(request):
         result={"status": "processing"},
     )
     evaluation.audio_files.set(audio_files)
-
     # Start the evaluation in a background thread
     evaluation_thread = threading.Thread(
-        target=perform_evaluation, args=(user, audio_file_ids, evaluation, scorecard_id)
+        target=perform_evaluation, args=(user, audio_file_ids, scorecard_id, evaluation)
     )
     evaluation_thread.start()
 
