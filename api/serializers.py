@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import (
+    Category,
     Scorecard,
     AudioFile,
     Transcript,
@@ -34,6 +35,10 @@ scorecard_schema = {
     },
 }
 
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ["id", "name", "keywords"]
 
 class ScorecardSerializer(serializers.ModelSerializer):
     class Meta:
