@@ -336,6 +336,8 @@ class ScorecardEvaluator:
         # Categorize and assign a scorecard if none is set
         if self.scorecard is None:
             self.categorize_and_assign_scorecard()
+            if self.scorecard is None:
+                raise Exception("No scorecard assigned. Run cancelled.")
         self.construct_prompt()
         evaluation_dict = self.evaluate()
         qa_dict = self.qa_comment()
