@@ -222,7 +222,6 @@ def get_evaluation(request, evaluation_job_id):
         return Response({"error": "Evaluation Job not found"}, status=404)
 
 
-
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def generate_and_retrieve_report(request, evaluation_id):
