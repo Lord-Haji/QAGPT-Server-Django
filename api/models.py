@@ -81,18 +81,63 @@ class Utterance(models.Model):
         return f"Speaker {self.speaker_label}: {self.text[:30]}..."
 
 
-class Evaluation(models.Model):
+class EvaluationJob(models.Model):
+    class StatusChoices(models.TextChoices):
+        PROCESSING = "processing", "Processing"
+        COMPLETED = "completed", "Completed"
+        FAILED = "failed", "Failed"
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     audio_files = models.ManyToManyField(AudioFile)
-    scorecard = models.ForeignKey(Scorecard, on_delete=models.CASCADE)
-    scorecard_title = models.CharField(max_length=100, null=True)
-    result = models.JSONField()  # Stores the result of the evaluation
-    pdf_report = models.FileField(
-        upload_to="evaluation_reports/", null=True, blank=True
-    )
-    individual_reports = models.JSONField(default=dict)
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(
+        max_length=10, choices=StatusChoices.choices, default=StatusChoices.PROCESSING
+    )
 
     def __str__(self):
-        return f"Evaluation {self.id} by {self.user.username}"
+        return f"Evaluation Job {self.id} by {self.user.username} ({self.status})"
+
+
+class Evaluation(models.Model):
+    class StatusChoices(models.TextChoices):
+        PENDING = "pending", "Pending"
+        PROCESSING = "processing", "Processing"
+        COMPLETED = "completed", "Completed"
+        FAILED = "failed", "Failed"
+        # Add more status choices as needed
+
+    evaluation_job = models.ForeignKey(
+        EvaluationJob,
+        on_delete=models.CASCADE,
+        related_name="evaluations",
+        blank=True,
+        null=True,
+    )
+    audio_file = models.ForeignKey(AudioFile, on_delete=models.CASCADE, null=True)
+    scorecard = models.ForeignKey(Scorecard, on_delete=models.CASCADE, null=True)
+    result = models.JSONField()
+    status = models.CharField(
+        max_length=10, choices=StatusChoices.choices, default=StatusChoices.PENDING
+    )
+
+    def __str__(self):
+        return f"Evaluation of {self.audio_file.file_name} with {self.scorecard.title} - {self.status}"
+
+
+# Preserving legacy evaluation model
+# class Evaluation(models.Model):
+#     user = models.ForeignKey(User, on_delete=models.CASCADE)
+#     audio_files = models.ManyToManyField(AudioFile)
+#     scorecard = models.ForeignKey(Scorecard, on_delete=models.CASCADE)
+#     scorecard_title = models.CharField(max_length=100, null=True)
+#     result = models.JSONField()  # Stores the result of the evaluation
+#     pdf_report = models.FileField(
+#         upload_to="evaluation_reports/", null=True, blank=True
+#     )
+#     individual_reports = models.JSONField(default=dict)
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     completed_at = models.DateTimeField(null=True, blank=True)
+
+#     def __str__(self):
+#         return f"Evaluation {self.id} by {self.user.username}"

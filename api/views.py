@@ -20,9 +20,17 @@ from .tasks import (
     generate_pdf_report_for_audio_file,
     transcribe,
 )
-from .models import Scorecard, AudioFile, Evaluation, Transcript, Utterance
+from .models import (
+    Scorecard,
+    AudioFile,
+    Evaluation,
+    EvaluationJob,
+    Transcript,
+    Utterance,
+)
 from .serializers import (
     EvaluationSerializer,
+    EvaluationJobSerializer,
     ScorecardSerializer,
     AudioFileSerializer,
     UserSerializer,
@@ -147,43 +155,72 @@ def evaluate_audio_files(request):
     scorecard_id = request.data.get("scorecard_id")
 
     audio_files = AudioFile.objects.filter(id__in=audio_file_ids, user=user)
-    scorecard = Scorecard.objects.get(id=scorecard_id, user=user)
 
-    # Create a placeholder evaluation object
-    evaluation = Evaluation.objects.create(
-        user=user,
-        scorecard=scorecard,
-        scorecard_title=scorecard.title,
-        result={"status": "processing"},
+    # Create an EvaluationJob instance
+    evaluation_job = EvaluationJob.objects.create(
+        user=user, status=EvaluationJob.StatusChoices.PROCESSING
     )
-    evaluation.audio_files.set(audio_files)
+    evaluation_job.audio_files.set(audio_files)
 
-    # Start the evaluation in a background thread
+    # Start the evaluation process in a background thread
     evaluation_thread = threading.Thread(
-        target=perform_evaluation, args=(user, audio_file_ids, scorecard_id, evaluation)
+        target=perform_evaluation, args=(evaluation_job.id, scorecard_id)
     )
     evaluation_thread.start()
 
-    # Return the evaluation job ID immediately
-    serializer = EvaluationSerializer(evaluation)
+    # Serialize and return the EvaluationJob
+    serializer = EvaluationJobSerializer(evaluation_job)
     return Response(serializer.data)
+
+
+# Legacy evaluate_audio_files
+#
+# @api_view(["POST"])
+# @permission_classes([IsAuthenticated])
+# def evaluate_audio_files(request):
+#     user = request.user
+#     audio_file_ids = request.data.get("audio_file_ids", [])
+#     scorecard_id = request.data.get("scorecard_id")
+
+#     audio_files = AudioFile.objects.filter(id__in=audio_file_ids, user=user)
+#     scorecard = Scorecard.objects.get(id=scorecard_id, user=user)
+
+#     # Create a placeholder evaluation object
+#     evaluation = Evaluation.objects.create(
+#         user=user,
+#         scorecard=scorecard,
+#         scorecard_title=scorecard.title,
+#         result={"status": "processing"},
+#     )
+#     evaluation.audio_files.set(audio_files)
+
+#     # Start the evaluation in a background thread
+#     evaluation_thread = threading.Thread(
+#         target=perform_evaluation, args=(user, audio_file_ids, scorecard_id, evaluation)
+#     )
+#     evaluation_thread.start()
+
+#     # Return the evaluation job ID immediately
+#     serializer = EvaluationSerializer(evaluation)
+#     return Response(serializer.data)
 
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def get_evaluation(request, evaluation_id=None):
+def get_evaluation(request, evaluation_job_id):
     user = request.user
-    if evaluation_id is None:
-        evaluations = Evaluation.objects.filter(user=user)
-        serializer = EvaluationSerializer(evaluations, many=True)
+
+    try:
+        # Fetch the EvaluationJob that belongs to the user and has the given ID
+        evaluation_job = EvaluationJob.objects.get(id=evaluation_job_id, user=user)
+
+        # Serialize the EvaluationJob along with its related Evaluations
+        serializer = EvaluationJobSerializer(evaluation_job)
         return Response(serializer.data)
-    else:
-        try:
-            evaluation = Evaluation.objects.get(id=evaluation_id, user=user)
-            serializer = EvaluationSerializer(evaluation)
-            return Response(serializer.data)
-        except Evaluation.DoesNotExist:
-            return Response({"error": "Evaluation not found"}, status=404)
+
+    except EvaluationJob.DoesNotExist:
+        return Response({"error": "Evaluation Job not found"}, status=404)
+
 
 
 @api_view(["GET"])

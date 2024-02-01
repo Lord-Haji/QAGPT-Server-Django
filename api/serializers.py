@@ -5,6 +5,7 @@ from .models import (
     Transcript,
     Utterance,
     Evaluation,
+    EvaluationJob,
     KnowledgeBase,
 )
 from django.contrib.auth.models import User
@@ -119,15 +120,20 @@ class KnowledgeBaseSerializer(serializers.ModelSerializer):
 class EvaluationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Evaluation
+        fields = ["evaluation_job", "audio_file", "status", "scorecard", "result"]
+
+
+class EvaluationJobSerializer(serializers.ModelSerializer):
+    evaluations = EvaluationSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = EvaluationJob
         fields = [
             "id",
             "user",
             "audio_files",
-            "scorecard",
-            "scorecard_title",
-            "result",
-            "pdf_report",
-            "individual_reports",
+            "status",
+            "evaluations",
             "created_at",
             "completed_at",
         ]

@@ -39,16 +39,17 @@ urlpatterns = [
         name="utterance_with_transcript",
     ),
     path("evaluate/", evaluate_audio_files, name="evaluate_audio_files"),
-    path("evaluation/<int:evaluation_id>/", get_evaluation, name="get_evaluation"),
-    path("evaluations/", get_evaluation, name="get_evaluation_all"),
-    path(
-        "evaluation/<int:evaluation_id>/pdf_report/",
-        generate_and_retrieve_report,
-        name="generate_and_retrieve_report",
-    ),
-    path(
-        "evaluation/<int:evaluation_id>/audio-files/<int:audio_file_id>/pdf_report/",
-        generate_and_retrieve_audio_file_report,
-        name="audio-file-report",
-    ),
+    path("evaluation/<int:evaluation_job_id>/", get_evaluation, name="get_evaluation"),
+    # Disable paths
+    # path("evaluations/", get_evaluation, name="get_evaluation_all"),
+    # path(
+    #     "evaluation/<int:evaluation_id>/pdf_report/",
+    #     generate_and_retrieve_report,
+    #     name="generate_and_retrieve_report",
+    # ),
+    # path(
+    #     "evaluation/<int:evaluation_id>/audio-files/<int:audio_file_id>/pdf_report/",
+    #     generate_and_retrieve_audio_file_report,
+    #     name="audio-file-report",
+    # ),
 ]

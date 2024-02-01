@@ -1,4 +1,11 @@
-from .models import Evaluation, AudioFile, Scorecard, Utterance, Transcript
+from .models import (
+    Evaluation,
+    EvaluationJob,
+    AudioFile,
+    Scorecard,
+    Utterance,
+    Transcript,
+)
 from django.utils import timezone
 from django.conf import settings
 from django.template.loader import render_to_string
@@ -79,7 +86,6 @@ def transcribe(audio_file_object):
             ],
             redact_audio=True,
         )
-            
 
         transcriber = aai.Transcriber()
         transcript_data = transcriber.transcribe(FILE_URL, config=config)
@@ -122,28 +128,62 @@ def transcribe(audio_file_object):
         return audio_file_object.transcription.text
 
 
-def perform_evaluation(user, audio_file_ids, scorecard_id, evaluation):
-    evaluations = []
+# Preserve legacy perform_evaluation
+#
+# def perform_evaluation(user, audio_file_ids, scorecard_id, evaluation):
+#     evaluations = []
 
-    audio_files = AudioFile.objects.filter(id__in=audio_file_ids)
+#     audio_files = AudioFile.objects.filter(id__in=audio_file_ids)
 
+#     try:
+#         for audio_file in audio_files:
+#             evaluator = ScorecardEvaluator(scorecard_id, audio_file.id)
+
+#             evaluations.append(
+#                 {"audio_file_id": audio_file.id, "responses": evaluator.run()}
+#             )
+#             print("finished evaluating audio file with id: ", audio_file.id)
+
+#         # Update the evaluation with the final result
+#         final_result = {"status": "completed", "evaluations": evaluations}
+#         Evaluation.objects.filter(id=evaluation.id).update(
+#             result=final_result, completed_at=timezone.now()
+#         )
+#     except Exception as e:
+#         print(f"An error occurred during evaluation: {e}")
+#         Evaluation.objects.filter(id=evaluation.id).delete()
+
+
+def perform_evaluation(evaluation_job_id, scorecard_id):
     try:
+        evaluation_job = EvaluationJob.objects.get(id=evaluation_job_id)
+        scorecard = Scorecard.objects.get(id=scorecard_id)
+        audio_files = evaluation_job.audio_files.all()
+
         for audio_file in audio_files:
-            evaluator = ScorecardEvaluator(scorecard_id, audio_file.id)
+            evaluator = ScorecardEvaluator(scorecard.id, audio_file.id)
+            evaluation_result = evaluator.run()
 
-            evaluations.append(
-                {"audio_file_id": audio_file.id, "responses": evaluator.run()}
+            # Create a new Evaluation instance for each audio file
+            Evaluation.objects.create(
+                evaluation_job=evaluation_job,
+                audio_file=audio_file,
+                scorecard=scorecard,
+                result=evaluation_result,
+                status=Evaluation.StatusChoices.COMPLETED,
             )
-            print("finished evaluating audio file with id: ", audio_file.id)
+            print(f"Finished evaluating audio file with id: {audio_file.id}")
 
-        # Update the evaluation with the final result
-        final_result = {"status": "completed", "evaluations": evaluations}
-        Evaluation.objects.filter(id=evaluation.id).update(
-            result=final_result, completed_at=timezone.now()
-        )
+        # Update the EvaluationJob status after all evaluations are complete
+        evaluation_job.status = EvaluationJob.StatusChoices.COMPLETED
+        evaluation_job.completed_at = timezone.now()
+        evaluation_job.save()
+
     except Exception as e:
         print(f"An error occurred during evaluation: {e}")
-        Evaluation.objects.filter(id=evaluation.id).delete()
+        # Update the EvaluationJob status to reflect the failure
+        evaluation_job.status = EvaluationJob.StatusChoices.FAILED
+        evaluation_job.save()
 
 
 class ScorecardEvaluator:
