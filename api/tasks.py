@@ -6,11 +6,13 @@ from .models import (
     Utterance,
     Transcript,
 )
+from django.db import transaction
 from django.utils import timezone
 from django.conf import settings
 from django.template.loader import render_to_string
 from weasyprint import HTML
 import json
+from concurrent.futures import ThreadPoolExecutor
 import re
 import os
 import io
@@ -153,18 +155,14 @@ def transcribe(audio_file_object):
 #         print(f"An error occurred during evaluation: {e}")
 #         Evaluation.objects.filter(id=evaluation.id).delete()
 
-
-def perform_evaluation(evaluation_job_id, scorecard_id):
+def perform_single_evaluation(evaluation_job, scorecard, audio_file):
     try:
-        evaluation_job = EvaluationJob.objects.get(id=evaluation_job_id)
-        scorecard = Scorecard.objects.get(id=scorecard_id)
-        audio_files = evaluation_job.audio_files.all()
+        evaluator = ScorecardEvaluator(scorecard.id, audio_file.id)
+        evaluation_result = evaluator.run()
 
-        for audio_file in audio_files:
-            evaluator = ScorecardEvaluator(scorecard.id, audio_file.id)
-            evaluation_result = evaluator.run()
-
-            # Create a new Evaluation instance for each audio file
+        # Create a new Evaluation instance for each audio file
+        # Use Django's transaction.atomic to ensure thread safety on database operations
+        with transaction.atomic():
             Evaluation.objects.create(
                 evaluation_job=evaluation_job,
                 audio_file=audio_file,
@@ -172,16 +170,28 @@ def perform_evaluation(evaluation_job_id, scorecard_id):
                 result=evaluation_result,
                 status=Evaluation.StatusChoices.COMPLETED,
             )
-            print(f"Finished evaluating audio file with id: {audio_file.id}")
+        print(f"Finished evaluating audio file with id: {audio_file.id}")
+    except Exception as e:
+        print(f"An error occurred during evaluation of file {audio_file.id}: {e}")
 
-        # Update the EvaluationJob status after all evaluations are complete
+
+def perform_evaluation(evaluation_job_id, scorecard_id):
+    try:
+        evaluation_job = EvaluationJob.objects.get(id=evaluation_job_id)
+        scorecard = Scorecard.objects.get(id=scorecard_id)
+        audio_files = evaluation_job.audio_files.all()
+
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            for audio_file in audio_files:
+                executor.submit(perform_single_evaluation, evaluation_job, scorecard, audio_file)
+
+        # Update the EvaluationJob status
         evaluation_job.status = EvaluationJob.StatusChoices.COMPLETED
         evaluation_job.completed_at = timezone.now()
         evaluation_job.save()
 
     except Exception as e:
-        print(f"An error occurred during evaluation: {e}")
-        # Update the EvaluationJob status to reflect the failure
+        print(f"An error occurred during the evaluation job: {e}")
         evaluation_job.status = EvaluationJob.StatusChoices.FAILED
         evaluation_job.save()
 
