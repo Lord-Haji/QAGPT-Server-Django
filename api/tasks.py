@@ -23,6 +23,18 @@ from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmb
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+import time
+
+
+def timer(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        print(f"Function {func.__name__} took {end_time - start_time} seconds to run.")
+        return result
+
+    return wrapper
 
 
 def combine_audio(audio_files):
@@ -329,11 +341,18 @@ class ScorecardEvaluator:
         response = llm.invoke(prompt)
         return response_to_dict(response.content)
 
+    @timer
     def run(self):
-        self.transcribe()
         self.construct_prompt()
-        evaluation_dict = self.evaluate()
-        qa_dict = self.qa_comment()
+        self.transcribe()
+
+        with ThreadPoolExecutor() as executor:
+            future_evaluation = executor.submit(self.evaluate)
+            future_qa_comment = executor.submit(self.qa_comment)
+
+            evaluation_dict = future_evaluation.result()
+            qa_dict = future_qa_comment.result()
+
         return {**evaluation_dict, **qa_dict}
 
 
@@ -345,17 +364,19 @@ def response_to_dict(response_text):
     return response_dict
 
 
-def generate_pdf_report(evaluation):
-    html_string = render_to_string(
-        "api/evaluation_report.html", {"evaluation": evaluation}
-    )
-    report_filename = f"evaluation_report_{evaluation.id}.pdf"
-    report_path = os.path.join(
-        settings.MEDIA_ROOT, f"evaluation_reports/{evaluation.id}/{report_filename}"
-    )
-    os.makedirs(os.path.dirname(report_path), exist_ok=True)
-    HTML(string=html_string).write_pdf(report_path)
-    return os.path.join(f"evaluation_reports/{evaluation.id}/", report_filename)
+# Preserve legacy unused code
+#
+# def generate_pdf_report(evaluation):
+#     html_string = render_to_string(
+#         "api/evaluation_report.html", {"evaluation": evaluation}
+#     )
+#     report_filename = f"evaluation_report_{evaluation.id}.pdf"
+#     report_path = os.path.join(
+#         settings.MEDIA_ROOT, f"evaluation_reports/{evaluation.id}/{report_filename}"
+#     )
+#     os.makedirs(os.path.dirname(report_path), exist_ok=True)
+#     HTML(string=html_string).write_pdf(report_path)
+#     return os.path.join(f"evaluation_reports/{evaluation.id}/", report_filename)
 
 
 def generate_pdf_report_for_evaluation(evaluation):

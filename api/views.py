@@ -16,7 +16,6 @@ from .tasks import (
     perform_evaluation,
     combine_audio,
     generate_combined_filename,
-    generate_pdf_report,
     generate_pdf_report_for_evaluation,
     transcribe,
 )
@@ -219,27 +218,29 @@ def get_evaluation(request, evaluation_job_id):
         return Response({"error": "Evaluation Job not found"}, status=404)
 
 
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def generate_and_retrieve_report(request, evaluation_id):
-    try:
-        evaluation = Evaluation.objects.get(id=evaluation_id, user=request.user)
-    except Evaluation.DoesNotExist:
-        return Response({"error": "Evaluation not found"}, status=404)
+# Preserve legacy unused code
+#
+# @api_view(["GET"])
+# @permission_classes([IsAuthenticated])
+# def generate_and_retrieve_report(request, evaluation_id):
+#     try:
+#         evaluation = Evaluation.objects.get(id=evaluation_id, user=request.user)
+#     except Evaluation.DoesNotExist:
+#         return Response({"error": "Evaluation not found"}, status=404)
 
-    # Generate the report if it doesn't exist
-    if not evaluation.pdf_report:
-        report_path = generate_pdf_report(evaluation)
-        evaluation.pdf_report.save(
-            report_path,
-            File(open(os.path.join(settings.MEDIA_ROOT, report_path), "rb")),
-        )
-        evaluation.save()
+#     # Generate the report if it doesn't exist
+#     if not evaluation.pdf_report:
+#         report_path = generate_pdf_report(evaluation)
+#         evaluation.pdf_report.save(
+#             report_path,
+#             File(open(os.path.join(settings.MEDIA_ROOT, report_path), "rb")),
+#         )
+#         evaluation.save()
 
-    # Serve the PDF file as a response
-    return FileResponse(
-        evaluation.pdf_report, as_attachment=True, filename=evaluation.pdf_report.name
-    )
+#     # Serve the PDF file as a response
+#     return FileResponse(
+#         evaluation.pdf_report, as_attachment=True, filename=evaluation.pdf_report.name
+#     )
 
 
 @api_view(["GET"])
