@@ -70,7 +70,7 @@ def generate_combined_filename(audio_files, file_format):
 
 def ms_to_hms(ms):
     if ms < 0:
-        return "time travel isn't real"
+        raise ValueError("Input cannot be less than 0")
     hours = ms // (1000 * 60 * 60)
     minutes = (ms // (1000 * 60)) % 60
     seconds = (ms // 1000) % 60
