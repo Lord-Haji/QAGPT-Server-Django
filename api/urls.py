@@ -9,7 +9,7 @@ from .views import (
     get_utterance_with_transcript,
     combine_and_upload_audio,
     generate_and_retrieve_report,
-    generate_and_retrieve_audio_file_report,
+    generate_and_retrieve_evaluation_report,
 )
 
 from rest_framework_simplejwt.views import (
@@ -47,9 +47,9 @@ urlpatterns = [
     #     generate_and_retrieve_report,
     #     name="generate_and_retrieve_report",
     # ),
-    # path(
-    #     "evaluation/<int:evaluation_id>/audio-files/<int:audio_file_id>/pdf_report/",
-    #     generate_and_retrieve_audio_file_report,
-    #     name="audio-file-report",
-    # ),
+    path(
+        "evaluation/<int:evaluation_id>/report/",
+        generate_and_retrieve_evaluation_report,
+        name="generate_and_retrieve_evaluation_report",
+    ),
 ]

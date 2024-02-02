@@ -6,6 +6,7 @@ from .models import (
     Utterance,
     Transcript,
 )
+from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils import timezone
 from django.conf import settings
@@ -155,6 +156,7 @@ def transcribe(audio_file_object):
 #         print(f"An error occurred during evaluation: {e}")
 #         Evaluation.objects.filter(id=evaluation.id).delete()
 
+
 def perform_single_evaluation(evaluation_job, scorecard, audio_file):
     try:
         evaluator = ScorecardEvaluator(scorecard.id, audio_file.id)
@@ -183,7 +185,9 @@ def perform_evaluation(evaluation_job_id, scorecard_id):
 
         with ThreadPoolExecutor(max_workers=5) as executor:
             for audio_file in audio_files:
-                executor.submit(perform_single_evaluation, evaluation_job, scorecard, audio_file)
+                executor.submit(
+                    perform_single_evaluation, evaluation_job, scorecard, audio_file
+                )
 
         # Update the EvaluationJob status
         evaluation_job.status = EvaluationJob.StatusChoices.COMPLETED
@@ -353,28 +357,15 @@ def generate_pdf_report(evaluation):
     return os.path.join(f"evaluation_reports/{evaluation.id}/", report_filename)
 
 
-def generate_pdf_report_for_audio_file(audio_file_id, evaluation):
-    audio_file_report_data = next(
-        (
-            item
-            for item in evaluation.result["evaluations"]
-            if item["audio_file_id"] == audio_file_id
-        ),
-        None,
-    )
-    if not audio_file_report_data:
-        raise ValueError(
-            f"Report data for audio file ID {audio_file_id} not found in evaluation."
-        )
-
+def generate_pdf_report_for_evaluation(evaluation):
     html_string = render_to_string(
-        "api/audio_file_report.html",
-        {"audio_file_report": audio_file_report_data, "evaluation": evaluation},
+        "api/evaluation_report.html", {"evaluation": evaluation}
     )
-    report_filename = f"audio_file_report_{evaluation.id}_{audio_file_id}.pdf"
-    report_path = os.path.join(
-        settings.MEDIA_ROOT, f"audio_file_reports/{evaluation.id}/{report_filename}"
-    )
-    os.makedirs(os.path.dirname(report_path), exist_ok=True)
-    HTML(string=html_string).write_pdf(report_path)
-    return os.path.join(f"audio_file_reports/{evaluation.id}/", report_filename)
+    report_filename = f"evaluation_report_{evaluation.id}.pdf"
+    report_content = HTML(string=html_string).write_pdf()
+
+    # Saving the PDF content to the pdf_report field
+    evaluation.pdf_report.save(report_filename, ContentFile(report_content))
+    evaluation.save()
+
+    return evaluation.pdf_report.url  # Returns the URL to access this file

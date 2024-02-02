@@ -11,14 +11,21 @@ class Scorecard(models.Model):
         return self.title
 
 
-def user_directory_path(instance, filename):
-    # File will be uploaded to MEDIA_ROOT/user_<name>/<filename>
-    return "{0}/{1}".format(instance.user.username, filename)
+def user_audio_directory_path(instance, filename):
+    # File will be uploaded to MEDIA_ROOT/user_<name>/audio_files/<filename>
+    return "{0}/audio_files/{1}".format(instance.user.username, filename)
 
 
 def user_knowledge_base_directory_path(instance, filename):
     # File will be uploaded to MEDIA_ROOT/user_<id>/knowledge_bases/<filename>
     return "{0}/knowledge_bases/{1}".format(instance.user.username, filename)
+
+
+def user_evaluation_report_directory_path(instance, filename):
+    # File will be uploaded to MEDIA_ROOT/user_<name>/evaluation_reports/<filename>
+    return "{0}/evaluation_reports/{1}".format(
+        instance.evaluation_job.user.username, filename
+    )
 
 
 class KnowledgeBase(models.Model):
@@ -38,7 +45,7 @@ class KnowledgeBase(models.Model):
 class AudioFile(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     file_name = models.CharField(max_length=255)
-    audio = models.FileField(upload_to=user_directory_path, null=True)
+    audio = models.FileField(upload_to=user_audio_directory_path, null=True)
     transcription = models.OneToOneField(
         "Transcript", on_delete=models.CASCADE, null=True, blank=True
     )
@@ -117,6 +124,9 @@ class Evaluation(models.Model):
     audio_file = models.ForeignKey(AudioFile, on_delete=models.CASCADE, null=True)
     scorecard = models.ForeignKey(Scorecard, on_delete=models.CASCADE, null=True)
     result = models.JSONField()
+    pdf_report = models.FileField(
+        upload_to=user_evaluation_report_directory_path, null=True, blank=True
+    )
     status = models.CharField(
         max_length=10, choices=StatusChoices.choices, default=StatusChoices.PENDING
     )

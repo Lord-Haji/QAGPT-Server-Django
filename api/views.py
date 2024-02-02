@@ -17,7 +17,7 @@ from .tasks import (
     combine_audio,
     generate_combined_filename,
     generate_pdf_report,
-    generate_pdf_report_for_audio_file,
+    generate_pdf_report_for_evaluation,
     transcribe,
 )
 from .models import (
@@ -247,26 +247,19 @@ def generate_and_retrieve_report(request, evaluation_id):
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def generate_and_retrieve_audio_file_report(request, evaluation_id, audio_file_id):
+def generate_and_retrieve_evaluation_report(request, evaluation_id):
     try:
-        evaluation = Evaluation.objects.get(id=evaluation_id, user=request.user)
-        if not evaluation.audio_files.filter(id=audio_file_id).exists():
-            return Response(
-                {"error": "Audio file not part of the evaluation"}, status=404
-            )
+        evaluation = Evaluation.objects.get(
+            id=evaluation_id, evaluation_job__user=request.user
+        )
 
-        # Check if the report for this audio file already exists
-        report_path = evaluation.individual_reports.get(str(audio_file_id))
-        if not report_path:
-            # Generate the report for this audio file
-            report_path = generate_pdf_report_for_audio_file(
-                audio_file_id, evaluation
-            )  # Implement this function
-            evaluation.individual_reports[str(audio_file_id)] = report_path
-            evaluation.save(update_fields=["individual_reports"])
+        if not evaluation.pdf_report:
+            # Generate the report if it doesn't exist
+            generate_pdf_report_for_evaluation(evaluation)  # Ensure this saves the file
 
-        # Serve the report
-        file_path = os.path.join(settings.MEDIA_ROOT, report_path)
+        # Use the 'path' attribute to get the absolute path
+        file_path = evaluation.pdf_report.path
+
         return FileResponse(
             open(file_path, "rb"),
             as_attachment=True,
@@ -275,3 +268,5 @@ def generate_and_retrieve_audio_file_report(request, evaluation_id, audio_file_i
 
     except Evaluation.DoesNotExist:
         return Response({"error": "Evaluation not found"}, status=404)
+    except FileNotFoundError:
+        return Response({"error": "File not found"}, status=404)
