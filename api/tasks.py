@@ -68,6 +68,15 @@ def generate_combined_filename(audio_files, file_format):
     return f"{combined_name}.{file_format}"
 
 
+def ms_to_hms(ms):
+    if ms < 0:
+        return "time travel isn't real"
+    hours = ms // (1000 * 60 * 60)
+    minutes = (ms // (1000 * 60)) % 60
+    seconds = (ms // 1000) % 60
+    return f"{hours:02}:{minutes:02}:{seconds:02}"
+
+
 def get_context(user, query):
     if not user.knowledge_base or not user.knowledge_base.pdf:
         return None
@@ -93,7 +102,9 @@ def get_context(user, query):
 def transcribe(audio_file_object):
     if audio_file_object.transcription is None:
         FILE_URL = audio_file_object.audio.path
-        config = aai.TranscriptionConfig(speaker_labels=True).set_redact_pii(
+        config = aai.TranscriptionConfig(
+            speaker_labels=True, speakers_expected=2
+        ).set_redact_pii(
             policies=[
                 aai.PIIRedactionPolicy.credit_card_number,
                 aai.PIIRedactionPolicy.credit_card_expiration,
@@ -105,9 +116,17 @@ def transcribe(audio_file_object):
         transcriber = aai.Transcriber()
         transcript_data = transcriber.transcribe(FILE_URL, config=config)
 
+        full_transcript = "\n".join(
+            (
+                f"[{ms_to_hms(utterance.start)} - {ms_to_hms(utterance.end)}] "
+                f"Speaker {utterance.speaker}: {utterance.text}"
+            )
+            for utterance in transcript_data.utterances
+        )
+
         # Create a new Transcript instance
         transcript_instance = Transcript.objects.create(
-            audio_file=audio_file_object, text=transcript_data.text
+            audio_file=audio_file_object, text=full_transcript
         )
 
         LOW_CONFIDENCE_THRESHOLD = 0.8
@@ -354,6 +373,7 @@ class ScorecardEvaluator:
             qa_dict = future_qa_comment.result()
 
         return {**evaluation_dict, **qa_dict}
+
 
 def simple_json_postprocessor(text):
     # Legacy code
