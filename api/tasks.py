@@ -228,7 +228,8 @@ class ScorecardEvaluator:
                 context = get_context(self.scorecard.user, question["text"])
                 if context:
                     question_prompt += (
-                        f" [For this question specifically, use the following additional "
+                        f"[For this question specifically, "
+                        f"use the following additional "
                         f"context: ####{context}####]"
                     )
 

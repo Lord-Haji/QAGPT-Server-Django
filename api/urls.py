@@ -8,7 +8,6 @@ from .views import (
     get_evaluation,
     get_utterance_with_transcript,
     combine_and_upload_audio,
-    generate_and_retrieve_report,
     generate_and_retrieve_evaluation_report,
 )
 

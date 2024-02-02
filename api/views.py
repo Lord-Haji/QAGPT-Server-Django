@@ -29,7 +29,6 @@ from .models import (
     Utterance,
 )
 from .serializers import (
-    EvaluationSerializer,
     EvaluationJobSerializer,
     ScorecardSerializer,
     AudioFileSerializer,
@@ -195,9 +194,7 @@ def evaluate_audio_files(request):
 #     evaluation.audio_files.set(audio_files)
 
 #     # Start the evaluation in a background thread
-#     evaluation_thread = threading.Thread(
-#         target=perform_evaluation, args=(user, audio_file_ids, scorecard_id, evaluation)
-#     )
+#     evaluation_thread = threading.Thread(target=perform_evaluation, args=(user, audio_file_ids, scorecard_id, evaluation)) # noqa
 #     evaluation_thread.start()
 
 #     # Return the evaluation job ID immediately

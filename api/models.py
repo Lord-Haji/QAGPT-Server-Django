@@ -132,7 +132,10 @@ class Evaluation(models.Model):
     )
 
     def __str__(self):
-        return f"Evaluation of {self.audio_file.file_name} with {self.scorecard.title} - {self.status}"
+        return (
+            f"Evaluation of {self.audio_file.file_name} with "
+            f"{self.scorecard.title} - {self.status}"
+        )
 
 
 # Preserving legacy evaluation model
