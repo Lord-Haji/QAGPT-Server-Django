@@ -1,4 +1,5 @@
 from .models import (
+    Category,
     Evaluation,
     EvaluationJob,
     AudioFile,
@@ -17,6 +18,7 @@ from concurrent.futures import ThreadPoolExecutor
 import re
 import os
 import io
+from openai import OpenAI
 from pydub import AudioSegment
 import assemblyai as aai
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
@@ -187,10 +189,33 @@ def transcribe(audio_file_object):
 #         print(f"An error occurred during evaluation: {e}")
 #         Evaluation.objects.filter(id=evaluation.id).delete()
 
+def compile_patterns(user):
+    categories = Category.objects.filter(user=user)
+    compiled_patterns = {}
+    for category in categories:
+        compiled_patterns[category.name] = [
+            re.compile(r"\b" + re.escape(kw.lower()) + r"\b")
+            for kw in category.keywords
+        ]
+    return compiled_patterns
+
+
+def match_keywords(text, patterns):
+    return sum(bool(pattern.search(text)) for pattern in patterns)
+
+
+def categorize_text(text, user):
+    patterns = compile_patterns(user)
+    text = text.lower()
+    best_match = max(
+        patterns.items(), key=lambda x: match_keywords(text, x[1]), default=(None,)
+    )[0]
+    return best_match
+
 
 def perform_single_evaluation(evaluation_job, scorecard, audio_file):
     try:
-        evaluator = ScorecardEvaluator(scorecard.id, audio_file.id)
+        evaluator = ScorecardEvaluator(audio_file.id, scorecard.id)
         evaluation_result = evaluator.run()
 
         # Create a new Evaluation instance for each audio file
@@ -213,12 +238,15 @@ def perform_evaluation(evaluation_job_id, scorecard_id):
         evaluation_job = EvaluationJob.objects.get(id=evaluation_job_id)
         scorecard = Scorecard.objects.get(id=scorecard_id)
         audio_files = evaluation_job.audio_files.all()
+        
+        for audio_file in audio_files:
+            perform_single_evaluation(evaluation_job, scorecard, audio_file)
 
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            for audio_file in audio_files:
-                executor.submit(
-                    perform_single_evaluation, evaluation_job, scorecard, audio_file
-                )
+        # with ThreadPoolExecutor(max_workers=5) as executor:
+        #     for audio_file in audio_files:
+        #         executor.submit(
+        #             perform_single_evaluation, evaluation_job, scorecard, audio_file
+        #         )
 
         # Update the EvaluationJob status
         evaluation_job.status = EvaluationJob.StatusChoices.COMPLETED
@@ -230,18 +258,63 @@ def perform_evaluation(evaluation_job_id, scorecard_id):
         evaluation_job.status = EvaluationJob.StatusChoices.FAILED
         evaluation_job.save()
 
+def invalid_to_valid_json(json_str):
+    client = OpenAI()
+
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo-0125",
+        response_format={ "type": "json_object" },
+        messages=[
+            {
+                "role": "system",
+                "content": "You are a helpful assistant who converts invalid JSONs to valid parsable JSON Strings"
+            },
+            {
+                "role": "user",
+                "content": json_str
+            }
+        ],
+        temperature=0,
+        max_tokens=4095,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0
+    )
+
+    return response.choices[0].message.content
+    
+
 
 class ScorecardEvaluator:
-    def __init__(self, scorecard_id, audio_file_id):
+    def __init__(self, audio_file_id, scorecard_id=None):
         self.scorecard = Scorecard.objects.get(id=scorecard_id)
         self.questions = self.scorecard.questions
+        # self.scorecard = None
+        # self.questions = []
         self.audio_file_object = AudioFile.objects.get(id=audio_file_id)
         self.transcript = ""
         self.questions_and_options = ""
 
+        # if scorecard_id:
+        #     print("Scorecard id present")
+        #     self.scorecard = Scorecard.objects.get(id=scorecard_id)
+        #     self.questions = self.scorecard.questions
+        # else:
+        #     self.categorize_and_assign_scorecard()
+
     def transcribe(self):
         self.transcript = transcribe(self.audio_file_object)
         return self.transcript
+
+    def categorize_and_assign_scorecard(self):
+        self.transcribe()
+        category_name = categorize_text(self.transcript, self.user)
+        try:
+            category = Category.objects.get(user=self.user, name=category_name)
+            self.scorecard = category.scorecard
+            self.questions = self.scorecard.questions if self.scorecard else []
+        except Category.DoesNotExist:
+            self.scorecard = None
 
     def construct_prompt(self):
         text = ""
@@ -289,7 +362,7 @@ class ScorecardEvaluator:
             f"being the option you chose and reason being the reason you chose that option\n"  # noqa: E501
         )
         user_prompt = f"Here is the transcript: \n{self.transcript}"
-        prompt = f"{sys_prompt}\n{user_prompt}"
+        prompt = f"{sys_prompt}\n{user_prompt}\nProvide a valid parsable JSON string"
 
         # messages = [{"role": "user", "parts": [prompt]}]
 
@@ -298,7 +371,9 @@ class ScorecardEvaluator:
             temperature=0.0,
             max_output_tokens=8192,
         )
+        print("Prompt to LLM<Eval>:", prompt)
         response = llm.invoke(prompt)
+        print("Raw LLM Response<Eval>:", response.content)
         evaluation_results = response_to_dict(response.content)
         detailed_responses = []
         total_score = 0
@@ -348,6 +423,7 @@ class ScorecardEvaluator:
             f"{{'qa': {schema_string}}}"
             f"Here is the transcript:\n"
             f"{self.transcript}\n"
+            f"Provide a valid parsable JSON string"
         )
         # messages = [{"role": "user", "parts": [prompt]}]
 
@@ -357,20 +433,28 @@ class ScorecardEvaluator:
             # max_output_tokens=8192,
         )
 
+        print("Prompt to LLM<QA>:", prompt)
         response = llm.invoke(prompt)
+        print("Raw LLM Response<QA>:", response.content)
         return response_to_dict(response.content)
 
     @timer
     def run(self):
+        if not self.scorecard:
+            # Handle the scenario where no scorecard is assigned
+            return {"error": "No suitable scorecard found"}
         self.construct_prompt()
         self.transcribe()
 
-        with ThreadPoolExecutor() as executor:
-            future_evaluation = executor.submit(self.evaluate)
-            future_qa_comment = executor.submit(self.qa_comment)
+        evaluation_dict = self.evaluate()
+        qa_dict = self.qa_comment()
 
-            evaluation_dict = future_evaluation.result()
-            qa_dict = future_qa_comment.result()
+        # with ThreadPoolExecutor() as executor:
+        #     future_evaluation = executor.submit(self.evaluate)
+        #     future_qa_comment = executor.submit(self.qa_comment)
+
+        #     evaluation_dict = future_evaluation.result()
+        #     qa_dict = future_qa_comment.result()
 
         return {**evaluation_dict, **qa_dict}
 
@@ -386,9 +470,60 @@ def simple_json_postprocessor(text):
 
 
 def response_to_dict(response_text):
-    formatted_text = simple_json_postprocessor(response_text)
-    response_dict = json.loads(formatted_text)
-    return response_dict
+    try:
+        formatted_text = simple_json_postprocessor(response_text)
+        return json.loads(formatted_text)
+    except json.JSONDecodeError as e:
+        print("JSON Decode Error:", e)
+        print("Offending text:", response_text)
+        # Call invalid_to_valid_json when JSON is invalid
+        corrected_json_str = invalid_to_valid_json(response_text)
+        try:
+            corrected_json = json.loads(corrected_json_str)
+            print("JSON has been corrected.")
+            print(corrected_json_str)
+            return corrected_json
+        except json.JSONDecodeError as e:
+            print("JSON is still invalid after correction attempt.")
+            return {}
+
+
+# def safe_json_loads(data):
+#     try:
+#         # First, try parsing the JSON as is
+#         return json.loads(data)
+#     except json.JSONDecodeError:
+#         # If it fails, try replacing single quotes with double quotes
+#         safe_data = data.replace("'", '"')
+#         try:
+#             return json.loads(safe_data)
+#         except json.JSONDecodeError as e:
+#             print("JSON Decode Error after replacement:", e)
+#             print("Offending text after replacement:", safe_data)
+#             return {}
+
+# def simple_json_postprocessor(text):
+#     formatted_text = text[text.find("{"): text.rfind("}") + 1]
+#     return formatted_text
+
+# def response_to_dict(response_content):
+#     try:
+#         # If response content is already a dictionary, return it directly
+#         if isinstance(response_content, dict):
+#             return response_content
+
+#         # If it's a string, apply the postprocessor and then attempt to safely load as JSON
+#         if isinstance(response_content, str):
+#             formatted_text = simple_json_postprocessor(response_content)
+#             return safe_json_loads(formatted_text)
+
+#     except json.JSONDecodeError as e:
+#         print("JSON Decode Error:", e)
+#         print("Offending text:", response_content)
+#         return {}  # Handle the error as appropriate
+
+#     return {}
+
 
 
 # Preserve legacy unused code

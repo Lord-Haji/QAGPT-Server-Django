@@ -110,7 +110,7 @@ WSGI_APPLICATION = "autoqa.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "categorize_test",
+        "NAME": "v2db",
         "USER": "postgres",
         "PASSWORD": "postgres",
         "HOST": "localhost",

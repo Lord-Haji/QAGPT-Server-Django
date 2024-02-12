@@ -145,6 +145,9 @@ def get_utterance_with_transcript(request, audio_file_id):
     return Response(data)
 
 
+# Currently uses multi level threading
+# for concurrently running transcription and evaluation.
+# Revert to a queue based system for better scalability.
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def evaluate_audio_files(request):
@@ -168,6 +171,37 @@ def evaluate_audio_files(request):
 
     # Serialize and return the EvaluationJob
     serializer = EvaluationJobSerializer(evaluation_job)
+    return Response(serializer.data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def evaluate_audio_files_auto(request):
+    user = request.user
+    audio_file_ids = request.data.get("audio_file_ids", [])
+
+    # Retrieve AudioFile instances for the user
+    audio_files = AudioFile.objects.filter(id__in=audio_file_ids, user=user)
+
+    if not audio_files:
+        return Response({"error": "No audio files found"}, status=400)
+
+    # Create an EvaluationJob instance
+    evaluation_job = EvaluationJob.objects.create(
+        user=user, status=EvaluationJob.StatusChoices.PROCESSING
+    )
+    evaluation_job.audio_files.set(audio_files)
+
+    # Start the evaluation process in a background thread
+    evaluation_thread = threading.Thread(
+        target=perform_evaluation, args=(evaluation_job.id, user.id)
+    )
+    evaluation_thread.start()
+
+    # Serialize the EvaluationJob
+    serializer = EvaluationJobSerializer(evaluation_job)
+
+    # Return the serialized EvaluationJob data
     return Response(serializer.data)
 
 

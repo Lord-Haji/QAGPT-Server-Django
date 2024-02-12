@@ -2,9 +2,29 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
+class Category(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100, unique=True)
+    keywords = models.JSONField(default=list)
+
+    class Meta:
+        verbose_name_plural = "Categories"
+
+    def __str__(self):
+        return f"{self.user.username} - {self.name}"
+
+
 class Scorecard(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=100)
+    category = models.OneToOneField(
+        Category,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="scorecard",
+        verbose_name="Category",
+    )
     questions = models.JSONField()  # Stores questions and their options
 
     def __str__(self):
