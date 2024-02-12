@@ -29,7 +29,28 @@ import time
 
 
 def timer(func):
+    """
+    Decorator function that measures the execution time of a given function.
+
+    Args:
+        func: The function to be timed.
+
+    Returns:
+        The result of the timed function.
+
+    """
     def wrapper(*args, **kwargs):
+        """
+        A decorator function that measures the execution time of the decorated function.
+
+        Args:
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+
+        Returns:
+            The result of the decorated function.
+
+        """
         start_time = time.time()
         result = func(*args, **kwargs)
         end_time = time.time()
@@ -40,6 +61,19 @@ def timer(func):
 
 
 def combine_audio(audio_files):
+    """
+    Combines multiple audio files into a single audio file.
+
+    Args:
+        audio_files (list): A list of file objects representing the audio files to be combined.
+
+    Returns:
+        tuple: A tuple containing the combined audio data as bytes and the format of the combined audio.
+
+    Example:
+        audio_files = [file1, file2, file3]
+        combined_audio, format = combine_audio(audio_files)
+    """
     combined = AudioSegment.empty()
     for file in audio_files:
         file_content = file.read()
@@ -56,6 +90,17 @@ def combine_audio(audio_files):
 
 
 def generate_combined_filename(audio_files, file_format):
+    """
+    Generate a combined filename by concatenating the base names of the given audio files.
+
+    Args:
+        audio_files (list): A list of audio files.
+        file_format (str): The desired file format for the combined filename.
+
+    Returns:
+        str: The combined filename.
+
+    """
     # Extracting the base names (without extensions) and concatenating
     base_names = [
         os.path.splitext(os.path.basename(file.name))[0] for file in audio_files
@@ -71,6 +116,18 @@ def generate_combined_filename(audio_files, file_format):
 
 
 def ms_to_hms(ms):
+    """
+    Converts milliseconds to hours, minutes, and seconds.
+
+    Args:
+        ms (int): The number of milliseconds to convert.
+
+    Returns:
+        str: The formatted string representing the converted time in the format "HH:MM:SS".
+
+    Raises:
+        ValueError: If the input is less than 0.
+    """
     if ms < 0:
         raise ValueError("Input cannot be less than 0")
     hours = ms // (1000 * 60 * 60)
@@ -80,6 +137,17 @@ def ms_to_hms(ms):
 
 
 def get_context(user, query):
+    """
+    Retrieves relevant context from the user's knowledge base PDF based on the given query.
+
+    Args:
+        user (User): The user object containing the knowledge base information.
+        query (str): The query to search for relevant documents.
+
+    Returns:
+        str: The extracted content from the relevant documents, joined by commas.
+            Returns None if the user's knowledge base or PDF is not available, or if an error occurs.
+    """
     if not user.knowledge_base or not user.knowledge_base.pdf:
         return None
 
@@ -102,6 +170,18 @@ def get_context(user, query):
 
 
 def transcribe(audio_file_object):
+    """
+    Transcribes the audio file object.
+
+    Args:
+        audio_file_object (AudioFile): The audio file object to transcribe.
+
+    Returns:
+        str: The transcribed text.
+
+    Raises:
+        None
+    """
     if audio_file_object.transcription is None:
         FILE_URL = audio_file_object.audio.path
         config = aai.TranscriptionConfig(
@@ -190,6 +270,18 @@ def transcribe(audio_file_object):
 #         Evaluation.objects.filter(id=evaluation.id).delete()
 
 def compile_patterns(user):
+    """
+    Compile patterns for each category's keywords.
+
+    Args:
+        user: The user for whom to compile patterns.
+
+    Returns:
+        A dictionary containing compiled patterns for each category's keywords.
+        The keys of the dictionary are the category names, and the values are lists
+        of compiled regular expression patterns.
+
+    """
     categories = Category.objects.filter(user=user)
     compiled_patterns = {}
     for category in categories:
@@ -201,10 +293,30 @@ def compile_patterns(user):
 
 
 def match_keywords(text, patterns):
+    """
+    Matches the given text against a list of patterns and returns the count of matches.
+
+    Args:
+        text (str): The text to be matched against the patterns.
+        patterns (list): A list of regular expression patterns to match against the text.
+
+    Returns:
+        int: The count of matches found in the text.
+    """
     return sum(bool(pattern.search(text)) for pattern in patterns)
 
 
 def categorize_text(text, user):
+    """
+    Categorizes the given text based on user-specific patterns.
+
+    Args:
+        text (str): The text to be categorized.
+        user (str): The user for whom the patterns are compiled.
+
+    Returns:
+        str: The best matching category for the given text.
+    """
     patterns = compile_patterns(user)
     text = text.lower()
     best_match = max(
@@ -214,6 +326,17 @@ def categorize_text(text, user):
 
 
 def perform_single_evaluation(evaluation_job, scorecard, audio_file):
+    """
+    Perform a single evaluation for an audio file using a given scorecard.
+
+    Args:
+        evaluation_job (EvaluationJob): The evaluation job associated with the evaluation.
+        scorecard (Scorecard): The scorecard to be used for evaluation.
+        audio_file (AudioFile): The audio file to be evaluated.
+
+    Returns:
+        None
+    """
     try:
         evaluator = ScorecardEvaluator(audio_file.id, scorecard.id)
         evaluation_result = evaluator.run()
@@ -234,6 +357,19 @@ def perform_single_evaluation(evaluation_job, scorecard, audio_file):
 
 
 def perform_evaluation(evaluation_job_id, scorecard_id):
+    """
+    Perform evaluation for a given evaluation job and scorecard.
+
+    Args:
+        evaluation_job_id (int): The ID of the evaluation job.
+        scorecard_id (int): The ID of the scorecard.
+
+    Raises:
+        Exception: If an error occurs during the evaluation job.
+
+    Returns:
+        None
+    """
     try:
         evaluation_job = EvaluationJob.objects.get(id=evaluation_job_id)
         scorecard = Scorecard.objects.get(id=scorecard_id)
@@ -259,6 +395,15 @@ def perform_evaluation(evaluation_job_id, scorecard_id):
         evaluation_job.save()
 
 def invalid_to_valid_json(json_str):
+    """
+    Converts an invalid JSON string to a valid parsable JSON string using OpenAI's GPT-3.5 Turbo model.
+
+    Args:
+        json_str (str): The invalid JSON string to be converted.
+
+    Returns:
+        str: The converted valid JSON string.
+    """
     client = OpenAI()
 
     response = client.chat.completions.create(
@@ -286,27 +431,53 @@ def invalid_to_valid_json(json_str):
 
 
 class ScorecardEvaluator:
+    """
+    Class for evaluating a scorecard based on an audio file transcript.
+
+    Args:
+        audio_file_id (int): The ID of the audio file.
+        scorecard_id (int, optional): The ID of the scorecard. Defaults to None.
+
+    Attributes:
+        scorecard (Scorecard): The scorecard object.
+        questions (list): The list of questions in the scorecard.
+        audio_file_object (AudioFile): The audio file object.
+        transcript (str): The transcript of the audio file.
+        questions_and_options (str): The formatted string of questions and options.
+
+    Methods:
+        transcribe: Transcribes the audio file.
+        categorize_and_assign_scorecard: Categorizes the transcript and assigns a scorecard.
+        construct_prompt: Constructs the prompt for evaluation.
+        evaluate: Evaluates the transcript based on the scorecard.
+        qa_comment: Extracts data and provides coaching tips from the transcript.
+        run: Runs the evaluation and coaching process.
+
+    """
+
     def __init__(self, audio_file_id, scorecard_id=None):
         self.scorecard = Scorecard.objects.get(id=scorecard_id)
         self.questions = self.scorecard.questions
-        # self.scorecard = None
-        # self.questions = []
         self.audio_file_object = AudioFile.objects.get(id=audio_file_id)
         self.transcript = ""
         self.questions_and_options = ""
 
-        # if scorecard_id:
-        #     print("Scorecard id present")
-        #     self.scorecard = Scorecard.objects.get(id=scorecard_id)
-        #     self.questions = self.scorecard.questions
-        # else:
-        #     self.categorize_and_assign_scorecard()
-
     def transcribe(self):
+        """
+        Transcribes the audio file.
+
+        Returns:
+            str: The transcript of the audio file.
+
+        """
         self.transcript = transcribe(self.audio_file_object)
         return self.transcript
 
     def categorize_and_assign_scorecard(self):
+        """
+        Categorizes the transcript and assigns a scorecard.
+
+        """
         self.transcribe()
         category_name = categorize_text(self.transcript, self.user)
         try:
@@ -317,6 +488,13 @@ class ScorecardEvaluator:
             self.scorecard = None
 
     def construct_prompt(self):
+        """
+        Constructs the prompt for evaluation.
+
+        Returns:
+            str: The formatted string of questions and options.
+
+        """
         text = ""
 
         for i, question in enumerate(self.questions):
@@ -327,8 +505,6 @@ class ScorecardEvaluator:
             )
 
             if question.get("use_knowledge_base", False):
-                # Specific instruction or context for using the knowledge base
-                # Replace 'Specific Context/Instruction' with actual content as needed
                 context = get_context(self.scorecard.user, question["text"])
                 if context:
                     question_prompt += (
@@ -342,6 +518,13 @@ class ScorecardEvaluator:
         return self.questions_and_options
 
     def evaluate(self):
+        """
+        Evaluates the transcript based on the scorecard.
+
+        Returns:
+            dict: The evaluation results.
+
+        """
         schema_string = [
             {
                 "question": "string",
@@ -351,29 +534,25 @@ class ScorecardEvaluator:
             }
         ]
         sys_prompt = (
-            f"You are a Quality Assurance Analyst who is tasked evaluate the transcript "  # noqa: E501
-            f"based on the following questions and choose a given option with proper reasoning. \n"  # noqa: E501
+            f"You are a Quality Assurance Analyst who is tasked evaluate the transcript " # noqa: E501
+            f"based on the following questions and choose a given option with proper reasoning. \n" # noqa: E501
             f"{self.questions_and_options}\n"
             f"Your Output should be in JSON with the keys being "
             f"question(''), options([]), llm_response('') and reason('')\n"
             f"In the following JSON Schema: for every question:"
             f"{{'scorecard': {schema_string}}}"
-            f"With the question and options being the original ones provided and llm_response "  # noqa: E501
-            f"being the option you chose and reason being the reason you chose that option\n"  # noqa: E501
+            f"With the question and options being the original ones provided and llm_response " # noqa: E501
+            f"being the option you chose and reason being the reason you chose that option\n" # noqa: E501
         )
         user_prompt = f"Here is the transcript: \n{self.transcript}"
         prompt = f"{sys_prompt}\n{user_prompt}\nProvide a valid parsable JSON string"
-
-        # messages = [{"role": "user", "parts": [prompt]}]
 
         llm = ChatGoogleGenerativeAI(
             model="gemini-pro",
             temperature=0.0,
             max_output_tokens=8192,
         )
-        print("Prompt to LLM<Eval>:", prompt)
         response = llm.invoke(prompt)
-        print("Raw LLM Response<Eval>:", response.content)
         evaluation_results = response_to_dict(response.content)
         detailed_responses = []
         total_score = 0
@@ -401,6 +580,13 @@ class ScorecardEvaluator:
         return evaluation_dict
 
     def qa_comment(self):
+        """
+        Extracts data and provides coaching tips from the transcript.
+
+        Returns:
+            dict: The extracted data and coaching tips.
+
+        """
         schema_string = [
             {
                 "name": "string",
@@ -413,35 +599,39 @@ class ScorecardEvaluator:
             }
         ]
         prompt = (
-            f"Extract the following data from the transcript: Name, Date Of Birth(DD/MM/YYYY), Contact Number, Email, Postal Address, Contact Number\n"  # noqa: E501
-            f"Summary: Write a short summary of the call covering all important aspects\n"  # noqa: E501
-            f"Comment: Provide coaching tips on how the agent improve? Specifically, for insights on areas like communication clarity, empathy, problem-solving efficiency, and handling difficult situations. Also Highlight areas where the Agent's performance is strong and effective.\n"  # noqa: E501
+            f"Extract the following data from the transcript: Name, Date Of Birth(DD/MM/YYYY), Contact Number, Email, Postal Address, Contact Number\n" # noqa: E501
+            f"Summary: Write a short summary of the call covering all important aspects\n" # noqa: E501
+            f"Comment: Provide coaching tips on how the agent improve? "
+            f"Specifically, for insights on areas like communication clarity, empathy, problem-solving efficiency, and handling difficult situations. " # noqa: E501
+            f"Also Highlight areas where the Agent's performance is strong and effective.\n" # noqa: E501
             f"If not captured in transcript then the value should be 'Not Found'\n"
             f"Your Output should be in JSON with the keys being "
-            f"name(''), dob(''), contactnumber(''), email(''), postaladdress(''), summary(''), and comment({{}}).\n"  # noqa: E501
+            f"name(''), dob(''), contactnumber(''), email(''), postaladdress(''), summary(''), and comment({{}}).\n" # noqa: E501
             f"In the following JSON Schema:"
             f"{{'qa': {schema_string}}}"
             f"Here is the transcript:\n"
             f"{self.transcript}\n"
             f"Provide a valid parsable JSON string"
         )
-        # messages = [{"role": "user", "parts": [prompt]}]
 
         llm = ChatGoogleGenerativeAI(
             model="gemini-pro",
             temperature=0.0,
-            # max_output_tokens=8192,
         )
 
-        print("Prompt to LLM<QA>:", prompt)
         response = llm.invoke(prompt)
-        print("Raw LLM Response<QA>:", response.content)
         return response_to_dict(response.content)
 
     @timer
     def run(self):
+        """
+        Runs the evaluation and coaching process.
+
+        Returns:
+            dict: The evaluation results and coaching tips.
+
+        """
         if not self.scorecard:
-            # Handle the scenario where no scorecard is assigned
             return {"error": "No suitable scorecard found"}
         self.construct_prompt()
         self.transcribe()
@@ -449,27 +639,34 @@ class ScorecardEvaluator:
         evaluation_dict = self.evaluate()
         qa_dict = self.qa_comment()
 
-        # with ThreadPoolExecutor() as executor:
-        #     future_evaluation = executor.submit(self.evaluate)
-        #     future_qa_comment = executor.submit(self.qa_comment)
-
-        #     evaluation_dict = future_evaluation.result()
-        #     qa_dict = future_qa_comment.result()
-
         return {**evaluation_dict, **qa_dict}
 
 
 def simple_json_postprocessor(text):
-    # Legacy code
-    # formatted_text = re.sub(
-    #     r"^```JSON\n|```json\n|```$", "", response_text, flags=re.MULTILINE
-    # )
+    """
+    Extracts the JSON content from a given text.
+
+    Args:
+        text (str): The input text.
+
+    Returns:
+        str: The extracted JSON content.
+    """
     formatted_text = text
     formatted_text = text[text.find("{") : text.rfind("}") + 1]
     return formatted_text
 
 
 def response_to_dict(response_text):
+    """
+    Converts a response text into a dictionary.
+
+    Args:
+        response_text (str): The response text to be converted.
+
+    Returns:
+        dict: The dictionary representation of the response text, or an empty dictionary if the conversion fails.
+    """
     try:
         formatted_text = simple_json_postprocessor(response_text)
         return json.loads(formatted_text)
@@ -542,6 +739,15 @@ def response_to_dict(response_text):
 
 
 def generate_pdf_report_for_evaluation(evaluation):
+    """
+    Generates a PDF report for the given evaluation.
+
+    Args:
+        evaluation: The evaluation object for which the PDF report is generated.
+
+    Returns:
+        str: The URL to access the generated PDF report.
+    """
     html_string = render_to_string(
         "api/evaluation_report.html", {"evaluation": evaluation}
     )
