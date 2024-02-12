@@ -20,6 +20,7 @@ from .tasks import (
     transcribe,
 )
 from .models import (
+    Category,
     Scorecard,
     AudioFile,
     Evaluation,
@@ -28,6 +29,7 @@ from .models import (
     Utterance,
 )
 from .serializers import (
+    CategorySerializer,
     EvaluationJobSerializer,
     ScorecardSerializer,
     AudioFileSerializer,
@@ -36,6 +38,21 @@ from .serializers import (
     UtteranceSerializer,
 )
 
+class CategoryViewSet(viewsets.ModelViewSet):
+    """
+    A viewset for viewing and editing category instances.
+    """
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # This ensures that users can only access their own categories
+        return Category.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        # Assign the current user as the owner of the category
+        serializer.save(user=self.request.user)
 
 class ScorecardViewSet(viewsets.ModelViewSet):
     queryset = Scorecard.objects.all()

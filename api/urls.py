@@ -1,10 +1,12 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
+    CategoryViewSet,
     ScorecardViewSet,
     AudioFileViewSet,
     register,
     evaluate_audio_files,
+    evaluate_audio_files_auto,
     get_evaluation,
     get_utterance_with_transcript,
     combine_and_upload_audio,
@@ -18,6 +20,7 @@ from rest_framework_simplejwt.views import (
 )
 
 router = DefaultRouter()
+router.register(r"categories", CategoryViewSet)
 router.register(r"scorecards", ScorecardViewSet)
 router.register(r"audiofiles", AudioFileViewSet)
 
@@ -38,6 +41,7 @@ urlpatterns = [
         name="utterance_with_transcript",
     ),
     path("evaluate/", evaluate_audio_files, name="evaluate_audio_files"),
+    path("evaluate-auto/", evaluate_audio_files_auto, name="evaluate_audio_files_auto"),
     path("evaluation/<int:evaluation_job_id>/", get_evaluation, name="get_evaluation"),
     # Disable paths
     # path("evaluations/", get_evaluation, name="get_evaluation_all"),
