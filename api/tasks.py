@@ -10,11 +10,9 @@ from .models import (
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils import timezone
-from django.conf import settings
 from django.template.loader import render_to_string
 from weasyprint import HTML
 import json
-from concurrent.futures import ThreadPoolExecutor
 import re
 import os
 import io
@@ -66,10 +64,12 @@ def combine_audio(audio_files):
     Combines multiple audio files into a single audio file.
 
     Args:
-        audio_files (list): A list of file objects representing the audio files to be combined.
+        audio_files (list): A list of file objects representing the audio files
+        to be combined.
 
     Returns:
-        tuple: A tuple containing the combined audio data as bytes and the format of the combined audio.
+        tuple: A tuple containing the combined audio data as bytes and the format
+        of the combined audio.
 
     Example:
         audio_files = [file1, file2, file3]
@@ -92,11 +92,13 @@ def combine_audio(audio_files):
 
 def generate_combined_filename(audio_files, file_format):
     """
-    Generate a combined filename by concatenating the base names of the given audio files.
+    Generate a combined filename by concatenating
+    the base names of the given audio files.
 
     Args:
         audio_files (list): A list of audio files.
-        file_format (str): The desired file format for the combined filename.
+        file_format (str): The desired file format
+        for the combined filename.
 
     Returns:
         str: The combined filename.
@@ -124,7 +126,8 @@ def ms_to_hms(ms):
         ms (int): The number of milliseconds to convert.
 
     Returns:
-        str: The formatted string representing the converted time in the format "HH:MM:SS".
+        str: The formatted string representing the
+        converted time in the format "HH:MM:SS".
 
     Raises:
         ValueError: If the input is less than 0.
@@ -139,7 +142,8 @@ def ms_to_hms(ms):
 
 def get_context(user, query):
     """
-    Retrieves relevant context from the user's knowledge base PDF based on the given query.
+    Retrieves relevant context from the user's knowledge base PDF
+    based on the given query.
 
     Args:
         user (User): The user object containing the knowledge base information.
@@ -147,7 +151,8 @@ def get_context(user, query):
 
     Returns:
         str: The extracted content from the relevant documents, joined by commas.
-            Returns None if the user's knowledge base or PDF is not available, or if an error occurs.
+            Returns None if the user's knowledge base or PDF is not available,
+            or if an error occurs.
     """
     if not user.knowledge_base or not user.knowledge_base.pdf:
         return None
@@ -296,11 +301,13 @@ def compile_patterns(user):
 
 def match_keywords(text, patterns):
     """
-    Matches the given text against a list of patterns and returns the count of matches.
+    Matches the given text against a list of patterns and
+    returns the count of matches.
 
     Args:
         text (str): The text to be matched against the patterns.
-        patterns (list): A list of regular expression patterns to match against the text.
+        patterns (list): A list of regular expression patterns
+        to match against the text.
 
     Returns:
         int: The count of matches found in the text.
@@ -332,7 +339,8 @@ def perform_single_evaluation(evaluation_job, scorecard, audio_file):
     Perform a single evaluation for an audio file using a given scorecard.
 
     Args:
-        evaluation_job (EvaluationJob): The evaluation job associated with the evaluation.
+        evaluation_job (EvaluationJob): The evaluation job
+        associated with the evaluation.
         scorecard (Scorecard): The scorecard to be used for evaluation.
         audio_file (AudioFile): The audio file to be evaluated.
 
@@ -382,7 +390,8 @@ def perform_evaluation(evaluation_job_id, scorecard_id):
                 perform_single_evaluation(evaluation_job, scorecard, audio_file)
             except Exception as e:
                 print(
-                    f"An error occurred during the evaluation of audio file {audio_file.id}: {e}"
+                    f"An error occurred during the evaluation of audio file "
+                    f"{audio_file.id}: {e}"
                 )
                 evaluation_job.status = EvaluationJob.StatusChoices.FAILED
                 evaluation_job.save()
@@ -400,7 +409,8 @@ def perform_evaluation(evaluation_job_id, scorecard_id):
 
 def invalid_to_valid_json(json_str):
     """
-    Converts an invalid JSON string to a valid parsable JSON string using OpenAI's GPT-3.5 Turbo model.
+    Converts an invalid JSON string to a valid parsable JSON string
+    using OpenAI's GPT-3.5 Turbo model.
 
     Args:
         json_str (str): The invalid JSON string to be converted.
@@ -416,7 +426,10 @@ def invalid_to_valid_json(json_str):
         messages=[
             {
                 "role": "system",
-                "content": "You are a helpful assistant who converts invalid JSONs to valid parsable JSON Strings",
+                "content": (
+                    "You are a helpful assistant who converts "
+                    "invalid JSONs to valid parsable JSON Strings"
+                ),
             },
             {"role": "user", "content": json_str},
         ],
@@ -447,7 +460,8 @@ class ScorecardEvaluator:
 
     Methods:
         transcribe: Transcribes the audio file.
-        categorize_and_assign_scorecard: Categorizes the transcript and assigns a scorecard.
+        categorize_and_assign_scorecard: Categorizes the transcript
+        and assigns a scorecard.
         construct_prompt: Constructs the prompt for evaluation.
         evaluate: Evaluates the transcript based on the scorecard.
         qa_comment: Extracts data and provides coaching tips from the transcript.
@@ -665,7 +679,8 @@ def response_to_dict(response_text):
         response_text (str): The response text to be converted.
 
     Returns:
-        dict: The dictionary representation of the response text, or an empty dictionary if the conversion fails.
+        dict: The dictionary representation of the response text,
+        or an empty dictionary if the conversion fails.
     """
     try:
         formatted_text = simple_json_postprocessor(response_text)
@@ -681,45 +696,8 @@ def response_to_dict(response_text):
             print(corrected_json_str)
             return corrected_json
         except json.JSONDecodeError as e:
-            print("JSON is still invalid after correction attempt.")
+            print(f"JSON is still invalid after correction attempt. Error: {e}")
             return {}
-
-
-# def safe_json_loads(data):
-#     try:
-#         # First, try parsing the JSON as is
-#         return json.loads(data)
-#     except json.JSONDecodeError:
-#         # If it fails, try replacing single quotes with double quotes
-#         safe_data = data.replace("'", '"')
-#         try:
-#             return json.loads(safe_data)
-#         except json.JSONDecodeError as e:
-#             print("JSON Decode Error after replacement:", e)
-#             print("Offending text after replacement:", safe_data)
-#             return {}
-
-# def simple_json_postprocessor(text):
-#     formatted_text = text[text.find("{"): text.rfind("}") + 1]
-#     return formatted_text
-
-# def response_to_dict(response_content):
-#     try:
-#         # If response content is already a dictionary, return it directly
-#         if isinstance(response_content, dict):
-#             return response_content
-
-#         # If it's a string, apply the postprocessor and then attempt to safely load as JSON
-#         if isinstance(response_content, str):
-#             formatted_text = simple_json_postprocessor(response_content)
-#             return safe_json_loads(formatted_text)
-
-#     except json.JSONDecodeError as e:
-#         print("JSON Decode Error:", e)
-#         print("Offending text:", response_content)
-#         return {}  # Handle the error as appropriate
-
-#     return {}
 
 
 # Preserve legacy unused code
