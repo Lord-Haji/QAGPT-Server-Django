@@ -376,14 +376,13 @@ def perform_evaluation(evaluation_job_id, scorecard_id):
         audio_files = evaluation_job.audio_files.all()
         
         for audio_file in audio_files:
-            perform_single_evaluation(evaluation_job, scorecard, audio_file)
-
-        # with ThreadPoolExecutor(max_workers=5) as executor:
-        #     for audio_file in audio_files:
-        #         executor.submit(
-        #             perform_single_evaluation, evaluation_job, scorecard, audio_file
-        #         )
-
+            try:
+                perform_single_evaluation(evaluation_job, scorecard, audio_file)
+            except Exception as e:
+                print(f"An error occurred during the evaluation of audio file {audio_file.id}: {e}")
+                evaluation_job.status = EvaluationJob.StatusChoices.FAILED
+                evaluation_job.save()
+            return  # Exit the functions
         # Update the EvaluationJob status
         evaluation_job.status = EvaluationJob.StatusChoices.COMPLETED
         evaluation_job.completed_at = timezone.now()
