@@ -39,6 +39,7 @@ def timer(func):
         The result of the timed function.
 
     """
+
     def wrapper(*args, **kwargs):
         """
         A decorator function that measures the execution time of the decorated function.
@@ -269,6 +270,7 @@ def transcribe(audio_file_object):
 #         print(f"An error occurred during evaluation: {e}")
 #         Evaluation.objects.filter(id=evaluation.id).delete()
 
+
 def compile_patterns(user):
     """
     Compile patterns for each category's keywords.
@@ -374,12 +376,14 @@ def perform_evaluation(evaluation_job_id, scorecard_id):
         evaluation_job = EvaluationJob.objects.get(id=evaluation_job_id)
         scorecard = Scorecard.objects.get(id=scorecard_id)
         audio_files = evaluation_job.audio_files.all()
-        
+
         for audio_file in audio_files:
             try:
                 perform_single_evaluation(evaluation_job, scorecard, audio_file)
             except Exception as e:
-                print(f"An error occurred during the evaluation of audio file {audio_file.id}: {e}")
+                print(
+                    f"An error occurred during the evaluation of audio file {audio_file.id}: {e}"
+                )
                 evaluation_job.status = EvaluationJob.StatusChoices.FAILED
                 evaluation_job.save()
             return  # Exit the functions
@@ -392,6 +396,7 @@ def perform_evaluation(evaluation_job_id, scorecard_id):
         print(f"An error occurred during the evaluation job: {e}")
         evaluation_job.status = EvaluationJob.StatusChoices.FAILED
         evaluation_job.save()
+
 
 def invalid_to_valid_json(json_str):
     """
@@ -407,26 +412,22 @@ def invalid_to_valid_json(json_str):
 
     response = client.chat.completions.create(
         model="gpt-3.5-turbo-0125",
-        response_format={ "type": "json_object" },
+        response_format={"type": "json_object"},
         messages=[
             {
                 "role": "system",
-                "content": "You are a helpful assistant who converts invalid JSONs to valid parsable JSON Strings"
+                "content": "You are a helpful assistant who converts invalid JSONs to valid parsable JSON Strings",
             },
-            {
-                "role": "user",
-                "content": json_str
-            }
+            {"role": "user", "content": json_str},
         ],
         temperature=0,
         max_tokens=4095,
         top_p=1,
         frequency_penalty=0,
-        presence_penalty=0
+        presence_penalty=0,
     )
 
     return response.choices[0].message.content
-    
 
 
 class ScorecardEvaluator:
@@ -533,15 +534,15 @@ class ScorecardEvaluator:
             }
         ]
         sys_prompt = (
-            f"You are a Quality Assurance Analyst who is tasked evaluate the transcript " # noqa: E501
-            f"based on the following questions and choose a given option with proper reasoning. \n" # noqa: E501
+            f"You are a Quality Assurance Analyst who is tasked evaluate the transcript "  # noqa: E501
+            f"based on the following questions and choose a given option with proper reasoning. \n"  # noqa: E501
             f"{self.questions_and_options}\n"
             f"Your Output should be in JSON with the keys being "
             f"question(''), options([]), llm_response('') and reason('')\n"
             f"In the following JSON Schema: for every question:"
             f"{{'scorecard': {schema_string}}}"
-            f"With the question and options being the original ones provided and llm_response " # noqa: E501
-            f"being the option you chose and reason being the reason you chose that option\n" # noqa: E501
+            f"With the question and options being the original ones provided and llm_response "  # noqa: E501
+            f"being the option you chose and reason being the reason you chose that option\n"  # noqa: E501
         )
         user_prompt = f"Here is the transcript: \n{self.transcript}"
         prompt = f"{sys_prompt}\n{user_prompt}\nProvide a valid parsable JSON string"
@@ -598,14 +599,14 @@ class ScorecardEvaluator:
             }
         ]
         prompt = (
-            f"Extract the following data from the transcript: Name, Date Of Birth(DD/MM/YYYY), Contact Number, Email, Postal Address, Contact Number\n" # noqa: E501
-            f"Summary: Write a short summary of the call covering all important aspects\n" # noqa: E501
+            f"Extract the following data from the transcript: Name, Date Of Birth(DD/MM/YYYY), Contact Number, Email, Postal Address, Contact Number\n"  # noqa: E501
+            f"Summary: Write a short summary of the call covering all important aspects\n"  # noqa: E501
             f"Comment: Provide coaching tips on how the agent improve? "
-            f"Specifically, for insights on areas like communication clarity, empathy, problem-solving efficiency, and handling difficult situations. " # noqa: E501
-            f"Also Highlight areas where the Agent's performance is strong and effective.\n" # noqa: E501
+            f"Specifically, for insights on areas like communication clarity, empathy, problem-solving efficiency, and handling difficult situations. "  # noqa: E501
+            f"Also Highlight areas where the Agent's performance is strong and effective.\n"  # noqa: E501
             f"If not captured in transcript then the value should be 'Not Found'\n"
             f"Your Output should be in JSON with the keys being "
-            f"name(''), dob(''), contactnumber(''), email(''), postaladdress(''), summary(''), and comment({{}}).\n" # noqa: E501
+            f"name(''), dob(''), contactnumber(''), email(''), postaladdress(''), summary(''), and comment({{}}).\n"  # noqa: E501
             f"In the following JSON Schema:"
             f"{{'qa': {schema_string}}}"
             f"Here is the transcript:\n"
@@ -719,7 +720,6 @@ def response_to_dict(response_text):
 #         return {}  # Handle the error as appropriate
 
 #     return {}
-
 
 
 # Preserve legacy unused code

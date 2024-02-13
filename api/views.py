@@ -38,10 +38,12 @@ from .serializers import (
     UtteranceSerializer,
 )
 
+
 class CategoryViewSet(viewsets.ModelViewSet):
     """
     A viewset for viewing and editing category instances.
     """
+
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = [IsAuthenticated]
@@ -53,6 +55,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # Assign the current user as the owner of the category
         serializer.save(user=self.request.user)
+
 
 class ScorecardViewSet(viewsets.ModelViewSet):
     queryset = Scorecard.objects.all()
