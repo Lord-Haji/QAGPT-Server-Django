@@ -6,7 +6,30 @@ QAGPT-Backend-Django is a Django-based backend application, designed to provide 
 
 ## Prerequisites
 
-Before setting up the project, ensure you have Python installed on your system. This application requires Python 3.x.
+Before setting up the project, ensure you have Python and `make` installed on your system. This application requires Python 3.x.
+
+### Installing Make
+
+- **Ubuntu/Debian:**
+  ```bash
+  sudo apt-get install make
+  ```
+
+- **macOS:**
+  ```bash
+  brew install make
+  ```
+
+- **Windows:**<br />
+  Install `make` via [Chocolatey](https://chocolatey.org/install):
+  ```powershell
+  choco install make
+  ```
+
+  Install `make` via [Scoop](https://scoop.sh/):
+  ```powershell
+  scoop install make
+  ```
 
 ## Installation
 
@@ -40,29 +63,28 @@ Follow these steps to get the application running:
 
 1. Install dependencies:
    ```bash
-   poetry install
+   make install
    ```
 
 2. Activate the poetry shell:
    ```bash
-   poetry shell
+   make shell
    ```
 
 3. Setup database migrations:
    ```bash
-   python manage.py makemigrations
-   python manage.py migrate
+   make migrations
    ```
 
 4. Run the server:
    ```bash
-   python manage.py runserver
+   make run
    ```
    Optionally, you can run the server on port 8000:
    ```bash
-   python manage.py runserver 0.0.0.0:8000
-
+   make run-exposed
    ```
+
 ## Accessing the Application
 
 - Access the Django Admin Panel at `localhost:8000/admin`. If hosted, use `[hostname]:[port]/admin`.
@@ -73,17 +95,16 @@ Follow these steps to get the application running:
 
 ## Code Formatting and Linting
 
-
 - **Black** is used as the autoformatting solution.
   Run it using:
   ```bash
-  black .
+  make format
   ```
 
 - **Flake8** is used for linting.
   Run it using:
   ```bash
-  pflake8
+  make lint
   ```
 
 ## TODO
