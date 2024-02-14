@@ -38,6 +38,18 @@ scorecard_schema = {
 
 
 class CategorySerializer(serializers.ModelSerializer):
+    """
+    Serializer for the Category model.
+
+    Attributes:
+        keywords (List[str]): List of keywords associated with the category.
+
+    Meta:
+        model (Category): The Category model.
+        fields (List[str]): List of fields to include in the serialized representation.
+        read_only_fields (List[str]): List of fields that should be read-only.
+    """
+
     keywords = serializers.ListField(child=serializers.CharField(max_length=100))
 
     class Meta:
@@ -47,6 +59,26 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class ScorecardSerializer(serializers.ModelSerializer):
+    """
+    Serializer class for the Scorecard model.
+
+    Serializes the following fields:
+    - id (int): The ID of the scorecard.
+    - title (str): The title of the scorecard.
+    - category (CategorySerializer): The category associated with the scorecard.
+    - questions (list): The list of questions in the scorecard.
+
+    Attributes:
+        category (CategorySerializer): Serializer for the category field.
+
+    Meta:
+        model (Scorecard): The model class associated with this serializer.
+        fields (list): The fields to include in the serialized representation.
+
+    Methods:
+        validate_questions: Validates the questions field of the serialized data.
+    """
+
     category = CategorySerializer(read_only=True)
 
     class Meta:
@@ -54,6 +86,18 @@ class ScorecardSerializer(serializers.ModelSerializer):
         fields = ["id", "title", "category", "questions"]
 
     def validate_questions(self, value):
+        """
+        Validates the questions field of the serialized data.
+
+        Args:
+            value (str or list): The value of the questions field.
+
+        Returns:
+            list: The validated questions field.
+
+        Raises:
+            serializers.ValidationError: If the questions field is invalid.
+        """
         # Convert value to Python object if it's a string
         if isinstance(value, str):
             value = json.loads(value)
@@ -117,10 +161,6 @@ class AudioFileSerializer(serializers.ModelSerializer):
         model = AudioFile
         fields = ["id", "user", "file_name", "audio", "transcription", "upload_date"]
         read_only_fields = ["user", "upload_date"]
-
-    # def create(self, validated_data):
-    #     # You can add additional logic here if needed
-    #     return AudioFile.objects.create(**validated_data)
 
 
 class KnowledgeBaseSerializer(serializers.ModelSerializer):
