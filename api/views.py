@@ -94,6 +94,7 @@ class AudioFileViewSet(viewsets.ModelViewSet):
             user=self.request.user, audio=audio_file, duration_seconds=duration_seconds
         )
 
+
 class TranscriptViewSet(viewsets.ModelViewSet):
     queryset = Transcript.objects.all()
     serializer_class = TranscriptSerializer
@@ -110,13 +111,17 @@ class TranscriptViewSet(viewsets.ModelViewSet):
         self.perform_update(serializer)
 
         # Handle Utterance updates if provided in the request
-        utterances_data = request.data.get('utterances')
+        utterances_data = request.data.get("utterances")
         if utterances_data:
             for utterance_data in utterances_data:
-                utterance_id = utterance_data.get('id')
+                utterance_id = utterance_data.get("id")
                 if utterance_id:
-                    utterance = Utterance.objects.get(id=utterance_id, transcript=transcript)
-                    utterance_serializer = UtteranceSerializer(utterance, data=utterance_data)
+                    utterance = Utterance.objects.get(
+                        id=utterance_id, transcript=transcript
+                    )
+                    utterance_serializer = UtteranceSerializer(
+                        utterance, data=utterance_data
+                    )
                     if utterance_serializer.is_valid():
                         utterance_serializer.save()
 

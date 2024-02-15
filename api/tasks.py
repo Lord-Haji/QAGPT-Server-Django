@@ -212,6 +212,7 @@ def get_context(user, query):
         logger.error(f"An error occurred while getting context: {e}")
         return None
 
+
 def format_transcript(utterances):
     """
     Formats the transcript from utterances.
@@ -259,9 +260,7 @@ def transcribe(audio_file_object):
         transcript_data = transcriber.transcribe(FILE_URL, config=config)
 
         # Create a new Transcript instance (without the 'text' field)
-        transcript_instance = Transcript.objects.create(
-            audio_file=audio_file_object
-        )
+        transcript_instance = Transcript.objects.create(audio_file=audio_file_object)
 
         LOW_CONFIDENCE_THRESHOLD = 0.8
 
@@ -298,7 +297,9 @@ def transcribe(audio_file_object):
     else:
         # Use the helper function to format the transcript
         # return format_transcript(audio_file_object.transcription.utterances.all())
-        formatted_transcript = format_transcript(audio_file_object.transcription.utterances.all())
+        formatted_transcript = format_transcript(
+            audio_file_object.transcription.utterances.all()
+        )
         print(f"Formatted transcript from audio file object: {formatted_transcript}")
         return formatted_transcript
 
