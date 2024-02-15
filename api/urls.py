@@ -4,6 +4,7 @@ from .views import (
     CategoryViewSet,
     ScorecardViewSet,
     AudioFileViewSet,
+    TranscriptViewSet,
     register,
     evaluate_audio_files,
     evaluate_audio_files_auto,
@@ -24,6 +25,7 @@ router = DefaultRouter()
 router.register(r"categories", CategoryViewSet)
 router.register(r"scorecards", ScorecardViewSet)
 router.register(r"audiofiles", AudioFileViewSet)
+router.register(r"transcripts", TranscriptViewSet)
 
 urlpatterns = [
     path("", include(router.urls)),

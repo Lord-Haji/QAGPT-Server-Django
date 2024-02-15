@@ -212,6 +212,22 @@ def get_context(user, query):
         logger.error(f"An error occurred while getting context: {e}")
         return None
 
+def format_transcript(utterances):
+    """
+    Formats the transcript from utterances.
+
+    Args:
+        utterances (QuerySet of Utterance): The utterances to format.
+
+    Returns:
+        str: The formatted transcript.
+    """
+    return "\n".join(
+        f"[{ms_to_hms(utterance.start_time)} - {ms_to_hms(utterance.end_time)}] "
+        f"Speaker {utterance.speaker_label}: {utterance.text}"
+        for utterance in utterances
+    )
+
 
 def transcribe(audio_file_object):
     """
@@ -242,17 +258,9 @@ def transcribe(audio_file_object):
         transcriber = aai.Transcriber()
         transcript_data = transcriber.transcribe(FILE_URL, config=config)
 
-        full_transcript = "\n".join(
-            (
-                f"[{ms_to_hms(utterance.start)} - {ms_to_hms(utterance.end)}] "
-                f"Speaker {utterance.speaker}: {utterance.text}"
-            )
-            for utterance in transcript_data.utterances
-        )
-
-        # Create a new Transcript instance
+        # Create a new Transcript instance (without the 'text' field)
         transcript_instance = Transcript.objects.create(
-            audio_file=audio_file_object, text=full_transcript
+            audio_file=audio_file_object
         )
 
         LOW_CONFIDENCE_THRESHOLD = 0.8
@@ -262,7 +270,6 @@ def transcribe(audio_file_object):
             low_conf_words = {}
 
             for word in utterance.words:
-                # Check if the confidence is below the threshold
                 if word.confidence < LOW_CONFIDENCE_THRESHOLD:
                     low_conf_words[word.text] = {
                         "confidence": word.confidence,
@@ -283,9 +290,17 @@ def transcribe(audio_file_object):
         audio_file_object.transcription = transcript_instance
         audio_file_object.save()
 
-        return transcript_data.text
+        # Use the helper function to format the transcript
+        # return format_transcript(transcript_instance.utterances.all())
+        formatted_transcript = format_transcript(transcript_instance.utterances.all())
+        print(f"Formatted transcript from transcript instance: {formatted_transcript}")
+        return formatted_transcript
     else:
-        return audio_file_object.transcription.text
+        # Use the helper function to format the transcript
+        # return format_transcript(audio_file_object.transcription.utterances.all())
+        formatted_transcript = format_transcript(audio_file_object.transcription.utterances.all())
+        print(f"Formatted transcript from audio file object: {formatted_transcript}")
+        return formatted_transcript
 
 
 # Preserve legacy perform_evaluation

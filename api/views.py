@@ -94,6 +94,34 @@ class AudioFileViewSet(viewsets.ModelViewSet):
             user=self.request.user, audio=audio_file, duration_seconds=duration_seconds
         )
 
+class TranscriptViewSet(viewsets.ModelViewSet):
+    queryset = Transcript.objects.all()
+    serializer_class = TranscriptSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # This ensures that users can only access their own transcripts
+        return Transcript.objects.filter(audio_file__user=self.request.user)
+
+    def update(self, request, *args, **kwargs):
+        transcript = self.get_object()
+        serializer = self.get_serializer(transcript, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        # Handle Utterance updates if provided in the request
+        utterances_data = request.data.get('utterances')
+        if utterances_data:
+            for utterance_data in utterances_data:
+                utterance_id = utterance_data.get('id')
+                if utterance_id:
+                    utterance = Utterance.objects.get(id=utterance_id, transcript=transcript)
+                    utterance_serializer = UtteranceSerializer(utterance, data=utterance_data)
+                    if utterance_serializer.is_valid():
+                        utterance_serializer.save()
+
+        return Response(serializer.data)
+
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
