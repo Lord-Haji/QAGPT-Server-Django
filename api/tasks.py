@@ -4,6 +4,7 @@ from .models import (
     EvaluationJob,
     AudioFile,
     Scorecard,
+    KnowledgeBase,
     Utterance,
     Transcript,
 )
@@ -12,6 +13,7 @@ from django.db import transaction
 from django.db.models import Sum, Count
 from django.utils import timezone
 from django.template.loader import render_to_string
+from django.conf import settings
 from weasyprint import HTML
 import json
 import re
@@ -22,7 +24,7 @@ from pydub import AudioSegment
 import assemblyai as aai
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain_community.document_loaders import PyMuPDFLoader
+from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import time
 import logging
@@ -192,11 +194,19 @@ def get_context(user, query):
             Returns None if the user's knowledge base or PDF is not available,
             or if an error occurs.
     """
-    if not user.knowledge_base or not user.knowledge_base.pdf:
+    # Check if the user has any knowledge bases
+    if not KnowledgeBase.objects.filter(user=user).exists():
+        logger.info(f"No knowledge bases found for user {user.username}")
         return None
 
+    # Define the path for the user's knowledge base directory
+    knowledge_base_directory = os.path.join(
+        settings.MEDIA_ROOT, f"{user.username}/knowledge_bases/"
+    )
+
     try:
-        loader = PyMuPDFLoader(user.knowledge_base.pdf.path)
+        # Use PyPDFDirectoryLoader to load all PDFs from the user's knowledge base directory
+        loader = PyPDFDirectoryLoader(knowledge_base_directory)
         documents = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=125, chunk_overlap=25)
         splitted_documents = text_splitter.split_documents(documents)
@@ -208,8 +218,10 @@ def get_context(user, query):
         relevant_documents = retriever.get_relevant_documents(query)
         extracted_content = [doc.page_content for doc in relevant_documents]
         return ",".join(extracted_content)
-    except Exception as e:  # replace with the actual expected exception
-        logger.error(f"An error occurred while getting context: {e}")
+    except Exception as e:
+        logger.error(
+            f"An error occurred while getting context for user {user.username}: {e}"
+        )
         return None
 
 

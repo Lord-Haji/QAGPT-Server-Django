@@ -24,6 +24,7 @@ from .models import (
     Category,
     Scorecard,
     AudioFile,
+    KnowledgeBase,
     Evaluation,
     EvaluationJob,
     Transcript,
@@ -33,6 +34,7 @@ from .serializers import (
     CategorySerializer,
     EvaluationJobSerializer,
     ScorecardSerializer,
+    KnowledgeBaseSerializer,
     AudioFileSerializer,
     UserSerializer,
     TranscriptSerializer,
@@ -93,6 +95,18 @@ class AudioFileViewSet(viewsets.ModelViewSet):
         serializer.save(
             user=self.request.user, audio=audio_file, duration_seconds=duration_seconds
         )
+
+
+class KnowledgeBaseViewSet(viewsets.ModelViewSet):
+    queryset = KnowledgeBase.objects.all()
+    serializer_class = KnowledgeBaseSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def get_queryset(self):
+        return KnowledgeBase.objects.filter(user=self.request.user)
 
 
 class TranscriptViewSet(viewsets.ModelViewSet):

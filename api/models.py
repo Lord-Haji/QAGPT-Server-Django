@@ -49,8 +49,8 @@ def user_evaluation_report_directory_path(instance, filename):
 
 
 class KnowledgeBase(models.Model):
-    user = models.OneToOneField(
-        User, on_delete=models.CASCADE, related_name="knowledge_base"
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="knowledge_bases"
     )
     pdf = models.FileField(
         upload_to=user_knowledge_base_directory_path, null=True, blank=True
@@ -59,7 +59,7 @@ class KnowledgeBase(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Knowledge Base of {self.user.username}"
+        return f"Knowledge Base PDF {self.pdf.name} for {self.user.username}"
 
 
 class AudioFile(models.Model):

@@ -153,7 +153,7 @@ class TranscriptSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Transcript
-        fields = ["audio_file", "text", "utterances"]
+        fields = ["audio_file", "utterances"]
 
 
 class AudioFileSerializer(serializers.ModelSerializer):
@@ -176,7 +176,7 @@ class AudioFileSerializer(serializers.ModelSerializer):
 class KnowledgeBaseSerializer(serializers.ModelSerializer):
     class Meta:
         model = KnowledgeBase
-        fields = ["user", "pdf", "created_at", "updated_at"]
+        fields = ["id", "pdf", "created_at", "updated_at"]
 
 
 class EvaluationSerializer(serializers.ModelSerializer):
