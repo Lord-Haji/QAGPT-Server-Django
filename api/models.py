@@ -85,10 +85,6 @@ class Transcript(models.Model):
     audio_file = models.OneToOneField(
         AudioFile, on_delete=models.CASCADE, related_name="transcript"
     )
-    # formatted_text = models.TextField(
-    #     blank=True
-    # )  # Text with Diarization and Timestamps
-
     def __str__(self):
         return f"Transcript for {self.audio_file.file_name}"
 
