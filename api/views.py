@@ -1,5 +1,7 @@
 import threading
 import os
+from pydub import AudioSegment
+import io
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.http import FileResponse
@@ -16,6 +18,7 @@ from .tasks import (
     generate_combined_filename,
     generate_pdf_report_for_evaluation,
     transcribe,
+    get_user_evaluation_stats,
 )
 from .models import (
     Category,
@@ -81,17 +84,22 @@ class AudioFileViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # Extract the audio file from the request
         audio_file = self.request.data.get("audio")
-        # Save the audio file along with the user who uploaded it
-        serializer.save(user=self.request.user, audio=audio_file)
+        # Calculate duration of the audio file
+        audio_segment = AudioSegment.from_file(io.BytesIO(audio_file.read()))
+        duration_seconds = (
+            len(audio_segment) / 1000.0
+        )  # Convert milliseconds to seconds
+
+        serializer.save(
+            user=self.request.user, audio=audio_file, duration_seconds=duration_seconds
+        )
 
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def combine_and_upload_audio(request):
     user = request.user
-    audio_files = request.FILES.getlist(
-        "audio_files"
-    )  # Assuming multiple files are uploaded with the same key
+    audio_files = request.FILES.getlist("audio_files")
 
     if not audio_files:
         return Response(
@@ -101,14 +109,29 @@ def combine_and_upload_audio(request):
     # Call a function to combine the audio files
     combined_audio, combined_audio_format = combine_audio(audio_files)
 
-    # Saving the combined audio file in AudioFile model
-    combined_filename = generate_combined_filename(audio_files, combined_audio_format)
+    # Create a ContentFile for the combined audio
     combined_file_content = ContentFile(combined_audio)
 
-    combined_audio_file = AudioFile.objects.create(
-        user=user, audio=combined_file_content, file_name=combined_filename
+    # Calculate the duration of the combined audio
+    combined_audio_segment = AudioSegment.from_file(io.BytesIO(combined_audio))
+    combined_duration_seconds = (
+        len(combined_audio_segment) / 1000.0
+    )  # Convert milliseconds to seconds
+
+    # Generate a filename for the combined audio file
+    combined_filename = generate_combined_filename(audio_files, combined_audio_format)
+
+    # Create a new AudioFile instance with the combined audio
+    combined_audio_file = AudioFile(
+        user=user,
+        audio=combined_file_content,
+        file_name=combined_filename,
+        duration_seconds=combined_duration_seconds,
     )
+
     combined_audio_file.audio.save(combined_filename, combined_file_content)
+    # Save the AudioFile instance
+    combined_audio_file.save()
 
     return Response(
         {
@@ -180,12 +203,13 @@ def evaluate_audio_files(request):
         user=user, status=EvaluationJob.StatusChoices.PROCESSING
     )
     evaluation_job.audio_files.set(audio_files)
-
+    print("Evaluation job created", evaluation_job.id, scorecard_id)
     # Start the evaluation process in a background thread
     evaluation_thread = threading.Thread(
         target=perform_evaluation, args=(evaluation_job.id, scorecard_id)
     )
     evaluation_thread.start()
+    print("Evaluation thread started", evaluation_job.id, scorecard_id)
 
     # Serialize and return the EvaluationJob
     serializer = EvaluationJobSerializer(evaluation_job)
@@ -320,3 +344,10 @@ def generate_and_retrieve_evaluation_report(request, evaluation_id):
         return Response({"error": "Evaluation not found"}, status=404)
     except FileNotFoundError:
         return Response({"error": "File not found"}, status=404)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_evaluation_stats_view(request):
+    user = request.user
+    stats = get_user_evaluation_stats(user)
+    return Response(stats)

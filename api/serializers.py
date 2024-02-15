@@ -9,6 +9,7 @@ from .models import (
     EvaluationJob,
     KnowledgeBase,
 )
+from .tasks import get_user_evaluation_stats
 from django.contrib.auth.models import User
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError
@@ -159,8 +160,16 @@ class AudioFileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AudioFile
-        fields = ["id", "user", "file_name", "audio", "transcription", "upload_date"]
-        read_only_fields = ["user", "upload_date"]
+        fields = [
+            "id",
+            "user",
+            "file_name",
+            "audio",
+            "duration_seconds",
+            "transcription",
+            "upload_date",
+        ]
+        read_only_fields = ["user", "duration_seconds", "upload_date"]
 
 
 class KnowledgeBaseSerializer(serializers.ModelSerializer):
@@ -192,7 +201,22 @@ class EvaluationJobSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    total_evaluated_duration = serializers.SerializerMethodField()
+    total_evaluated_files = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ["username", "password", "email"]
+        fields = [
+            "username",
+            "password",
+            "email",
+            "total_evaluated_duration",
+            "total_evaluated_files",
+        ]
         extra_kwargs = {"password": {"write_only": True}}
+
+    def get_total_evaluated_duration(self, user):
+        return get_user_evaluation_stats(user)["total_minutes"]
+
+    def get_total_evaluated_files(self, user):
+        return get_user_evaluation_stats(user)["total_files"]

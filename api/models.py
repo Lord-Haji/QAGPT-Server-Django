@@ -66,6 +66,7 @@ class AudioFile(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     file_name = models.CharField(max_length=255)
     audio = models.FileField(upload_to=user_audio_directory_path, null=True)
+    duration_seconds = models.FloatField(default=0.0)  # Default in seoonds
     transcription = models.OneToOneField(
         "Transcript", on_delete=models.CASCADE, null=True, blank=True
     )
@@ -156,21 +157,3 @@ class Evaluation(models.Model):
             f"Evaluation of {self.audio_file.file_name} with "
             f"{self.scorecard.title} - {self.status}"
         )
-
-
-# Preserving legacy evaluation model
-# class Evaluation(models.Model):
-#     user = models.ForeignKey(User, on_delete=models.CASCADE)
-#     audio_files = models.ManyToManyField(AudioFile)
-#     scorecard = models.ForeignKey(Scorecard, on_delete=models.CASCADE)
-#     scorecard_title = models.CharField(max_length=100, null=True)
-#     result = models.JSONField()  # Stores the result of the evaluation
-#     pdf_report = models.FileField(
-#         upload_to="evaluation_reports/", null=True, blank=True
-#     )
-#     individual_reports = models.JSONField(default=dict)
-#     created_at = models.DateTimeField(auto_now_add=True)
-#     completed_at = models.DateTimeField(null=True, blank=True)
-
-#     def __str__(self):
-#         return f"Evaluation {self.id} by {self.user.username}"

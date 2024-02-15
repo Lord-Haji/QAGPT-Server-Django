@@ -11,6 +11,7 @@ from .views import (
     get_utterance_with_transcript,
     combine_and_upload_audio,
     generate_and_retrieve_evaluation_report,
+    user_evaluation_stats_view,
 )
 
 from rest_framework_simplejwt.views import (
@@ -55,4 +56,5 @@ urlpatterns = [
         generate_and_retrieve_evaluation_report,
         name="generate_and_retrieve_evaluation_report",
     ),
+    path('user-evaluation-stats/', user_evaluation_stats_view, name='user-evaluation-stats'),
 ]

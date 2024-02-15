@@ -9,6 +9,7 @@ from .models import (
 )
 from django.core.files.base import ContentFile
 from django.db import transaction
+from django.db.models import Sum, Count
 from django.utils import timezone
 from django.template.loader import render_to_string
 from weasyprint import HTML
@@ -138,6 +139,26 @@ def ms_to_hms(ms):
     minutes = (ms // (1000 * 60)) % 60
     seconds = (ms // 1000) % 60
     return f"{hours:02}:{minutes:02}:{seconds:02}"
+
+
+def get_user_evaluation_stats(user):
+    evaluated_audio_files = Evaluation.objects.filter(
+        audio_file__user=user, status=Evaluation.StatusChoices.COMPLETED
+    )
+
+    total_seconds = (
+        evaluated_audio_files.aggregate(Sum("audio_file__duration_seconds"))[
+            "audio_file__duration_seconds__sum"
+        ]
+        or 0
+    )
+    total_minutes = total_seconds / 60
+    total_files = evaluated_audio_files.count()
+
+    return {
+        "total_minutes": total_minutes,
+        "total_files": total_files,
+    }
 
 
 def get_context(user, query):
@@ -384,8 +405,10 @@ def perform_evaluation(evaluation_job_id, scorecard_id):
         evaluation_job = EvaluationJob.objects.get(id=evaluation_job_id)
         scorecard = Scorecard.objects.get(id=scorecard_id)
         audio_files = evaluation_job.audio_files.all()
+        print(audio_files)
 
         for audio_file in audio_files:
+            print("Single Evaluation started for audio file: ", audio_file.id)
             try:
                 perform_single_evaluation(evaluation_job, scorecard, audio_file)
             except Exception as e:
@@ -395,7 +418,7 @@ def perform_evaluation(evaluation_job_id, scorecard_id):
                 )
                 evaluation_job.status = EvaluationJob.StatusChoices.FAILED
                 evaluation_job.save()
-            return  # Exit the functions
+                return  # Exit the functions
         # Update the EvaluationJob status
         evaluation_job.status = EvaluationJob.StatusChoices.COMPLETED
         evaluation_job.completed_at = timezone.now()
