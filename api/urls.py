@@ -56,5 +56,9 @@ urlpatterns = [
         generate_and_retrieve_evaluation_report,
         name="generate_and_retrieve_evaluation_report",
     ),
-    path('user-evaluation-stats/', user_evaluation_stats_view, name='user-evaluation-stats'),
+    path(
+        "user-evaluation-stats/",
+        user_evaluation_stats_view,
+        name="user-evaluation-stats",
+    ),
 ]

@@ -344,8 +344,9 @@ def generate_and_retrieve_evaluation_report(request, evaluation_id):
         return Response({"error": "Evaluation not found"}, status=404)
     except FileNotFoundError:
         return Response({"error": "File not found"}, status=404)
-    
-@api_view(['GET'])
+
+
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def user_evaluation_stats_view(request):
     user = request.user

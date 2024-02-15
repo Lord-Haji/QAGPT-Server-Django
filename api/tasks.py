@@ -25,6 +25,23 @@ from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import time
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def set_console_log_level(level):
+    logger = logging.getLogger("django")
+    console_handler = next(
+        (
+            handler
+            for handler in logger.handlers
+            if isinstance(handler, logging.StreamHandler)
+        ),
+        None,
+    )
+    if console_handler:
+        console_handler.setLevel(level)
 
 
 def timer(func):
@@ -192,7 +209,7 @@ def get_context(user, query):
         extracted_content = [doc.page_content for doc in relevant_documents]
         return ",".join(extracted_content)
     except Exception as e:  # replace with the actual expected exception
-        print(f"An error occurred while getting context: {e}")
+        logger.error(f"An error occurred while getting context: {e}")
         return None
 
 
@@ -369,6 +386,8 @@ def perform_single_evaluation(evaluation_job, scorecard, audio_file):
         None
     """
     try:
+        # Temporarily set console log level to DEBUG
+        set_console_log_level(logging.DEBUG)
         evaluator = ScorecardEvaluator(audio_file.id, scorecard.id)
         evaluation_result = evaluator.run()
 
@@ -382,9 +401,14 @@ def perform_single_evaluation(evaluation_job, scorecard, audio_file):
                 result=evaluation_result,
                 status=Evaluation.StatusChoices.COMPLETED,
             )
-        print(f"Finished evaluating audio file with id: {audio_file.id}")
+        logger.debug(f"Finished evaluating audio file with id: {audio_file.id}")
     except Exception as e:
-        print(f"An error occurred during evaluation of file {audio_file.id}: {e}")
+        logger.error(
+            f"An error occurred during evaluation of file {audio_file.id}: {e}"
+        )
+    finally:
+        # Revert console log level back to ERROR (or your default level)
+        set_console_log_level(logging.ERROR)
 
 
 def perform_evaluation(evaluation_job_id, scorecard_id):
@@ -405,14 +429,12 @@ def perform_evaluation(evaluation_job_id, scorecard_id):
         evaluation_job = EvaluationJob.objects.get(id=evaluation_job_id)
         scorecard = Scorecard.objects.get(id=scorecard_id)
         audio_files = evaluation_job.audio_files.all()
-        print(audio_files)
 
         for audio_file in audio_files:
-            print("Single Evaluation started for audio file: ", audio_file.id)
             try:
                 perform_single_evaluation(evaluation_job, scorecard, audio_file)
             except Exception as e:
-                print(
+                logger.error(
                     f"An error occurred during the evaluation of audio file "
                     f"{audio_file.id}: {e}"
                 )
@@ -425,7 +447,7 @@ def perform_evaluation(evaluation_job_id, scorecard_id):
         evaluation_job.save()
 
     except Exception as e:
-        print(f"An error occurred during the evaluation job: {e}")
+        logger.error(f"An error occurred during the evaluation job: {e}")
         evaluation_job.status = EvaluationJob.StatusChoices.FAILED
         evaluation_job.save()
 
@@ -709,17 +731,15 @@ def response_to_dict(response_text):
         formatted_text = simple_json_postprocessor(response_text)
         return json.loads(formatted_text)
     except json.JSONDecodeError as e:
-        print("JSON Decode Error:", e)
-        print("Offending text:", response_text)
+        logger.error(f"JSON Decode Error: {e}, Offending text: {response_text}")
         # Call invalid_to_valid_json when JSON is invalid
         corrected_json_str = invalid_to_valid_json(response_text)
         try:
             corrected_json = json.loads(corrected_json_str)
-            print("JSON has been corrected.")
-            print(corrected_json_str)
+            logger.debug(f"JSON has been corrected.:{corrected_json_str}")
             return corrected_json
         except json.JSONDecodeError as e:
-            print(f"JSON is still invalid after correction attempt. Error: {e}")
+            logger.error(f"JSON is still invalid after correction attempt. Error: {e}")
             return {}
 
 
