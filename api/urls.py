@@ -26,7 +26,7 @@ router = DefaultRouter()
 router.register(r"categories", CategoryViewSet)
 router.register(r"scorecards", ScorecardViewSet)
 router.register(r"audiofiles", AudioFileViewSet)
-router.register(r"vocabulary", VocabularyViewSet)
+router.register(r"vocabularies", VocabularyViewSet)
 router.register(r"knowledgebases", KnowledgeBaseViewSet)
 router.register(r"transcripts", TranscriptViewSet)
 

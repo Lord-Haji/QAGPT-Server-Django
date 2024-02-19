@@ -46,6 +46,7 @@ class Scorecard(models.Model):
     def __str__(self):
         return f"Scorecard: {self.title} (User: {self.user.username})"
 
+
 class KnowledgeBase(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="knowledge_bases"

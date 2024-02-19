@@ -1,13 +1,13 @@
 from .models import (
     Category,
-    Evaluation,
-    EvaluationJob,
-    AudioFile,
-    Scorecard,
     Vocabulary,
+    Scorecard,
     KnowledgeBase,
-    Utterance,
+    AudioFile,
     Transcript,
+    Utterance,
+    EvaluationJob,
+    Evaluation,
 )
 from django.core.files.base import ContentFile
 from django.db import transaction

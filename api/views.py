@@ -21,25 +21,25 @@ from .tasks import (
 )
 from .models import (
     Category,
-    Scorecard,
-    AudioFile,
     Vocabulary,
+    Scorecard,
     KnowledgeBase,
-    Evaluation,
-    EvaluationJob,
+    AudioFile,
     Transcript,
     Utterance,
+    EvaluationJob,
+    Evaluation,
 )
 from .serializers import (
-    CategorySerializer,
-    EvaluationJobSerializer,
-    ScorecardSerializer,
-    VocabularySerializer,
-    KnowledgeBaseSerializer,
-    AudioFileSerializer,
     UserSerializer,
-    TranscriptSerializer,
+    CategorySerializer,
+    VocabularySerializer,
+    ScorecardSerializer,
+    KnowledgeBaseSerializer,
     UtteranceSerializer,
+    EvaluationJobSerializer,
+    TranscriptSerializer,
+    AudioFileSerializer,
 )
 
 

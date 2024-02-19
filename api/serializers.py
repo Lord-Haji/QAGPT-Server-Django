@@ -1,20 +1,69 @@
 from rest_framework import serializers
 from .models import (
     Category,
+    Vocabulary,
     Scorecard,
+    KnowledgeBase,
     AudioFile,
     Transcript,
     Utterance,
-    Evaluation,
     EvaluationJob,
-    Vocabulary,
-    KnowledgeBase,
+    Evaluation,
 )
 from .tasks import get_user_evaluation_stats
 from django.contrib.auth.models import User
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError
 import json
+
+
+class UserSerializer(serializers.ModelSerializer):
+    total_evaluated_duration = serializers.SerializerMethodField()
+    total_evaluated_files = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            "username",
+            "password",
+            "email",
+            "total_evaluated_duration",
+            "total_evaluated_files",
+        ]
+        extra_kwargs = {"password": {"write_only": True}}
+
+    def get_total_evaluated_duration(self, user):
+        return get_user_evaluation_stats(user)["total_minutes"]
+
+    def get_total_evaluated_files(self, user):
+        return get_user_evaluation_stats(user)["total_files"]
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    """
+    Serializer for the Category model.
+
+    Attributes:
+        keywords (List[str]): List of keywords associated with the category.
+
+    Meta:
+        model (Category): The Category model.
+        fields (List[str]): List of fields to include in the serialized representation.
+        read_only_fields (List[str]): List of fields that should be read-only.
+    """
+
+    keywords = serializers.ListField(child=serializers.CharField(max_length=100))
+
+    class Meta:
+        model = Category
+        fields = ["id", "user", "name", "keywords"]
+        read_only_fields = ["user"]
+
+
+class VocabularySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Vocabulary
+        fields = ["id", "words"]
 
 
 scorecard_schema = {
@@ -37,27 +86,6 @@ scorecard_schema = {
         "additionalProperties": False,
     },
 }
-
-
-class CategorySerializer(serializers.ModelSerializer):
-    """
-    Serializer for the Category model.
-
-    Attributes:
-        keywords (List[str]): List of keywords associated with the category.
-
-    Meta:
-        model (Category): The Category model.
-        fields (List[str]): List of fields to include in the serialized representation.
-        read_only_fields (List[str]): List of fields that should be read-only.
-    """
-
-    keywords = serializers.ListField(child=serializers.CharField(max_length=100))
-
-    class Meta:
-        model = Category
-        fields = ["id", "user", "name", "keywords"]
-        read_only_fields = ["user"]
 
 
 class ScorecardSerializer(serializers.ModelSerializer):
@@ -135,6 +163,12 @@ class ScorecardSerializer(serializers.ModelSerializer):
         return value
 
 
+class KnowledgeBaseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = KnowledgeBase
+        fields = ["id", "pdf", "created_at", "updated_at"]
+
+
 class UtteranceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Utterance
@@ -174,18 +208,6 @@ class AudioFileSerializer(serializers.ModelSerializer):
         read_only_fields = ["user", "duration_seconds", "upload_date"]
 
 
-class VocabularySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Vocabulary
-        fields = ["id", "words"]
-
-
-class KnowledgeBaseSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = KnowledgeBase
-        fields = ["id", "pdf", "created_at", "updated_at"]
-
-
 class EvaluationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Evaluation
@@ -206,25 +228,3 @@ class EvaluationJobSerializer(serializers.ModelSerializer):
             "created_at",
             "completed_at",
         ]
-
-
-class UserSerializer(serializers.ModelSerializer):
-    total_evaluated_duration = serializers.SerializerMethodField()
-    total_evaluated_files = serializers.SerializerMethodField()
-
-    class Meta:
-        model = User
-        fields = [
-            "username",
-            "password",
-            "email",
-            "total_evaluated_duration",
-            "total_evaluated_files",
-        ]
-        extra_kwargs = {"password": {"write_only": True}}
-
-    def get_total_evaluated_duration(self, user):
-        return get_user_evaluation_stats(user)["total_minutes"]
-
-    def get_total_evaluated_files(self, user):
-        return get_user_evaluation_stats(user)["total_files"]
