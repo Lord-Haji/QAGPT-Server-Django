@@ -7,6 +7,7 @@ from .models import (
     EvaluationJob,
     Transcript,
     Utterance,
+    Vocabulary,
     KnowledgeBase,
 )
 
@@ -18,4 +19,5 @@ admin.site.register(EvaluationJob)
 admin.site.register(Evaluation)
 admin.site.register(Transcript)
 admin.site.register(Utterance)
+admin.site.register(Vocabulary)
 admin.site.register(KnowledgeBase)

@@ -52,6 +52,9 @@ class Vocabulary(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     words = models.JSONField(default=list)
 
+    class Meta:
+        verbose_name_plural = "Vocabularies"
+
     def __str__(self):
         return f"Vocabulary for {self.user.username}"
 
