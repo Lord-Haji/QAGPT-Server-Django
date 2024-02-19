@@ -11,7 +11,7 @@ from .models import (
 )
 from django.core.files.base import ContentFile
 from django.db import transaction
-from django.db.models import Sum, Count
+from django.db.models import Sum
 from django.utils import timezone
 from django.template.loader import render_to_string
 from django.conf import settings
@@ -206,7 +206,6 @@ def get_context(user, query):
     )
 
     try:
-        # Use PyPDFDirectoryLoader to load all PDFs from the user's knowledge base directory
         loader = PyPDFDirectoryLoader(knowledge_base_directory)
         documents = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=125, chunk_overlap=25)

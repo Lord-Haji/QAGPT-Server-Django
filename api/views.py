@@ -17,7 +17,6 @@ from .tasks import (
     combine_audio,
     generate_combined_filename,
     generate_pdf_report_for_evaluation,
-    transcribe,
     get_user_evaluation_stats,
 )
 from .models import (

@@ -102,4 +102,4 @@ exclude = [
     "api/migrations",
     "autoqa/settings.py"
 ]
-ignore = ["E203"]
+ignore = ["E203", "W503"]

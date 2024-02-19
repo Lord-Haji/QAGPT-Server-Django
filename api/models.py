@@ -2,6 +2,11 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
+def user_directory_path(instance, filename, subfolder):
+    # File will be uploaded to MEDIA_ROOT/user_<name>/<subfolder>/<filename>
+    return f"{instance.user.username}/{subfolder}/{filename}"
+
+
 class Category(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=100, unique=True)
@@ -11,7 +16,18 @@ class Category(models.Model):
         verbose_name_plural = "Categories"
 
     def __str__(self):
-        return f"{self.user.username} - {self.name}"
+        return f"Category: {self.name} (User: {self.user.username})"
+
+
+class Vocabulary(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    words = models.JSONField(default=list)
+
+    class Meta:
+        verbose_name_plural = "Vocabularies"
+
+    def __str__(self):
+        return f"Vocabulary (User: {self.user.username})"
 
 
 class Scorecard(models.Model):
@@ -28,55 +44,32 @@ class Scorecard(models.Model):
     questions = models.JSONField()  # Stores questions and their options
 
     def __str__(self):
-        return self.title
-
-
-def user_audio_directory_path(instance, filename):
-    # File will be uploaded to MEDIA_ROOT/user_<name>/audio_files/<filename>
-    return "{0}/audio_files/{1}".format(instance.user.username, filename)
-
-
-def user_knowledge_base_directory_path(instance, filename):
-    # File will be uploaded to MEDIA_ROOT/user_<id>/knowledge_bases/<filename>
-    return "{0}/knowledge_bases/{1}".format(instance.user.username, filename)
-
-
-def user_evaluation_report_directory_path(instance, filename):
-    # File will be uploaded to MEDIA_ROOT/user_<name>/evaluation_reports/<filename>
-    return "{0}/evaluation_reports/{1}".format(
-        instance.evaluation_job.user.username, filename
-    )
-
-
-class Vocabulary(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    words = models.JSONField(default=list)
-
-    class Meta:
-        verbose_name_plural = "Vocabularies"
-
-    def __str__(self):
-        return f"Vocabulary for {self.user.username}"
-
+        return f"Scorecard: {self.title} (User: {self.user.username})"
 
 class KnowledgeBase(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="knowledge_bases"
     )
     pdf = models.FileField(
-        upload_to=user_knowledge_base_directory_path, null=True, blank=True
+        upload_to=lambda instance, filename: user_directory_path(
+            instance, filename, "knowledge_bases"
+        )
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Knowledge Base PDF {self.pdf.name} for {self.user.username}"
+        return f"Knowledge Base: {self.pdf.name} (User: {self.user.username})"
 
 
 class AudioFile(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     file_name = models.CharField(max_length=255)
-    audio = models.FileField(upload_to=user_audio_directory_path, null=True)
+    audio = models.FileField(
+        upload_to=lambda instance, filename: user_directory_path(
+            instance, filename, "audio_files"
+        )
+    )
     duration_seconds = models.FloatField(default=0.0)  # Default in seoonds
     transcription = models.OneToOneField(
         "Transcript", on_delete=models.CASCADE, null=True, blank=True
@@ -89,7 +82,7 @@ class AudioFile(models.Model):
         ]
 
     def __str__(self):
-        return self.file_name
+        return f"Audio File: {self.file_name} (User: {self.user.username})"
 
 
 class Transcript(models.Model):
@@ -98,7 +91,7 @@ class Transcript(models.Model):
     )
 
     def __str__(self):
-        return f"Transcript for {self.audio_file.file_name}"
+        return f"Transcript for Audio File: {self.audio_file.file_name}"
 
 
 class Utterance(models.Model):
@@ -113,7 +106,7 @@ class Utterance(models.Model):
     low_confidence_words = models.JSONField(default=dict)
 
     def __str__(self):
-        return f"Speaker {self.speaker_label}: {self.text[:30]}..."
+        return f"Utterance: {self.text[:30]}... (Speaker: {self.speaker_label})"
 
 
 class EvaluationJob(models.Model):
@@ -131,7 +124,10 @@ class EvaluationJob(models.Model):
     )
 
     def __str__(self):
-        return f"Evaluation Job {self.id} by {self.user.username} ({self.status})"
+        return (
+            f"Evaluation Job {self.id} (User: {self.user.username},"
+            f"Status: {self.status})"
+        )
 
 
 class Evaluation(models.Model):
@@ -153,7 +149,9 @@ class Evaluation(models.Model):
     scorecard = models.ForeignKey(Scorecard, on_delete=models.CASCADE, null=True)
     result = models.JSONField()
     pdf_report = models.FileField(
-        upload_to=user_evaluation_report_directory_path, null=True, blank=True
+        upload_to=lambda instance, filename: user_directory_path(
+            instance, filename, "evaluation_reports"
+        )
     )
     status = models.CharField(
         max_length=10, choices=StatusChoices.choices, default=StatusChoices.PENDING
@@ -161,6 +159,6 @@ class Evaluation(models.Model):
 
     def __str__(self):
         return (
-            f"Evaluation of {self.audio_file.file_name} with "
-            f"{self.scorecard.title} - {self.status}"
+            f"Evaluation of Audio File: {self.audio_file.file_name} with "
+            f"Scorecard: {self.scorecard.title} (Status: {self.status})"
         )
