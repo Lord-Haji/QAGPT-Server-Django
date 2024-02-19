@@ -4,13 +4,13 @@ from .views import (
     CategoryViewSet,
     ScorecardViewSet,
     AudioFileViewSet,
+    VocabularyViewSet,
     KnowledgeBaseViewSet,
     TranscriptViewSet,
     register,
     evaluate_audio_files,
     evaluate_audio_files_auto,
     get_evaluation,
-    get_utterance_with_transcript,
     combine_and_upload_audio,
     generate_and_retrieve_evaluation_report,
     user_evaluation_stats_view,
@@ -26,6 +26,7 @@ router = DefaultRouter()
 router.register(r"categories", CategoryViewSet)
 router.register(r"scorecards", ScorecardViewSet)
 router.register(r"audiofiles", AudioFileViewSet)
+router.register(r"vocabulary", VocabularyViewSet)
 router.register(r"knowledgebases", KnowledgeBaseViewSet)
 router.register(r"transcripts", TranscriptViewSet)
 
@@ -39,11 +40,6 @@ urlpatterns = [
         "combine_and_upload_audio/",
         combine_and_upload_audio,
         name="combine_and_upload_audio",
-    ),
-    path(
-        "audio-files/<int:audio_file_id>/utterance-with-transcript/",
-        get_utterance_with_transcript,
-        name="utterance_with_transcript",
     ),
     path("evaluate/", evaluate_audio_files, name="evaluate_audio_files"),
     path("evaluate-auto/", evaluate_audio_files_auto, name="evaluate_audio_files_auto"),

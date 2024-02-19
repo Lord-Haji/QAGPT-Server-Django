@@ -7,6 +7,7 @@ from .models import (
     Utterance,
     Evaluation,
     EvaluationJob,
+    Vocabulary,
     KnowledgeBase,
 )
 from .tasks import get_user_evaluation_stats
@@ -171,6 +172,12 @@ class AudioFileSerializer(serializers.ModelSerializer):
             "upload_date",
         ]
         read_only_fields = ["user", "duration_seconds", "upload_date"]
+
+
+class VocabularySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Vocabulary
+        fields = ["id", "words"]
 
 
 class KnowledgeBaseSerializer(serializers.ModelSerializer):

@@ -4,6 +4,7 @@ from .models import (
     EvaluationJob,
     AudioFile,
     Scorecard,
+    Vocabulary,
     KnowledgeBase,
     Utterance,
     Transcript,
@@ -257,8 +258,16 @@ def transcribe(audio_file_object):
     """
     if audio_file_object.transcription is None:
         FILE_URL = audio_file_object.audio.path
+
+        # Get the user's custom vocabulary
+        try:
+            vocabulary = Vocabulary.objects.get(user=audio_file_object.user)
+            custom_words = vocabulary.words
+        except Vocabulary.DoesNotExist:
+            custom_words = []
+
         config = aai.TranscriptionConfig(
-            speaker_labels=True, speakers_expected=2
+            word_boost=custom_words, speaker_labels=True, speakers_expected=2
         ).set_redact_pii(
             policies=[
                 aai.PIIRedactionPolicy.credit_card_number,

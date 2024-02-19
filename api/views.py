@@ -24,6 +24,7 @@ from .models import (
     Category,
     Scorecard,
     AudioFile,
+    Vocabulary,
     KnowledgeBase,
     Evaluation,
     EvaluationJob,
@@ -34,6 +35,7 @@ from .serializers import (
     CategorySerializer,
     EvaluationJobSerializer,
     ScorecardSerializer,
+    VocabularySerializer,
     KnowledgeBaseSerializer,
     AudioFileSerializer,
     UserSerializer,
@@ -95,6 +97,18 @@ class AudioFileViewSet(viewsets.ModelViewSet):
         serializer.save(
             user=self.request.user, audio=audio_file, duration_seconds=duration_seconds
         )
+
+
+class VocabularyViewSet(viewsets.ModelViewSet):
+    queryset = Vocabulary.objects.all()
+    serializer_class = VocabularySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Vocabulary.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 
 class KnowledgeBaseViewSet(viewsets.ModelViewSet):
@@ -202,35 +216,6 @@ def register(request):
             }
         )
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def get_utterance_with_transcript(request, audio_file_id):
-    try:
-        audio_file = AudioFile.objects.get(id=audio_file_id)
-    except AudioFile.DoesNotExist:
-        return Response({"error": "Audio file not found"}, status=404)
-
-    transcript = Transcript.objects.filter(audio_file_id=audio_file.id).first()
-    utterances = (
-        Utterance.objects.filter(transcript_id=transcript.id) if transcript else None
-    )
-
-    if not transcript or not utterances:
-        transcribe(audio_file)
-        transcript = Transcript.objects.get(audio_file_id=audio_file.id)
-        utterances = Utterance.objects.filter(transcript_id=transcript.id)
-
-    transcript_serializer = TranscriptSerializer(transcript)
-    utterance_serializer = UtteranceSerializer(utterances, many=True)
-
-    data = {
-        "transcript": transcript_serializer.data,
-        "utterances": utterance_serializer.data,
-    }
-
-    return Response(data)
 
 
 # Currently uses multi level threading

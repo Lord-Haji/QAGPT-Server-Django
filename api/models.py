@@ -48,6 +48,14 @@ def user_evaluation_report_directory_path(instance, filename):
     )
 
 
+class Vocabulary(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    words = models.JSONField(default=list)
+
+    def __str__(self):
+        return f"Vocabulary for {self.user.username}"
+
+
 class KnowledgeBase(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="knowledge_bases"
