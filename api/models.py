@@ -6,6 +6,14 @@ def user_directory_path(instance, filename, subfolder):
     # File will be uploaded to MEDIA_ROOT/user_<name>/<subfolder>/<filename>
     return f"{instance.user.username}/{subfolder}/{filename}"
 
+def upload_to_knowledge_bases(instance, filename):
+    return user_directory_path(instance, filename, "knowledge_bases")
+
+def upload_to_audio_files(instance, filename):
+    return user_directory_path(instance, filename, "audio_files")
+
+def upload_to_evaluation_reports(instance, filename):
+    return user_directory_path(instance, filename, "evaluation_reports")
 
 class Category(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -51,11 +59,7 @@ class KnowledgeBase(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="knowledge_bases"
     )
-    pdf = models.FileField(
-        upload_to=lambda instance, filename: user_directory_path(
-            instance, filename, "knowledge_bases"
-        )
-    )
+    pdf = models.FileField(upload_to=upload_to_knowledge_bases)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -66,11 +70,7 @@ class KnowledgeBase(models.Model):
 class AudioFile(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     file_name = models.CharField(max_length=255)
-    audio = models.FileField(
-        upload_to=lambda instance, filename: user_directory_path(
-            instance, filename, "audio_files"
-        )
-    )
+    audio = models.FileField(upload_to=upload_to_audio_files)
     duration_seconds = models.FloatField(default=0.0)  # Default in seoonds
     transcription = models.OneToOneField(
         "Transcript", on_delete=models.CASCADE, null=True, blank=True
@@ -149,11 +149,7 @@ class Evaluation(models.Model):
     audio_file = models.ForeignKey(AudioFile, on_delete=models.CASCADE, null=True)
     scorecard = models.ForeignKey(Scorecard, on_delete=models.CASCADE, null=True)
     result = models.JSONField()
-    pdf_report = models.FileField(
-        upload_to=lambda instance, filename: user_directory_path(
-            instance, filename, "evaluation_reports"
-        )
-    )
+    pdf_report = models.FileField(upload_to=upload_to_evaluation_reports, null=True, blank=True)
     status = models.CharField(
         max_length=10, choices=StatusChoices.choices, default=StatusChoices.PENDING
     )
