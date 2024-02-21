@@ -218,7 +218,7 @@ class TranscriptSerializer(serializers.ModelSerializer):
 
 
 class AudioFileSerializer(serializers.ModelSerializer):
-    transcription = TranscriptSerializer(read_only=True)
+    transcription = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = AudioFile
@@ -231,7 +231,7 @@ class AudioFileSerializer(serializers.ModelSerializer):
             "transcription",
             "upload_date",
         ]
-        read_only_fields = ["user", "duration_seconds", "upload_date"]
+        read_only_fields = ["user", "duration_seconds", "file_name", "upload_date"]
 
 
 class EvaluationSerializer(serializers.ModelSerializer):

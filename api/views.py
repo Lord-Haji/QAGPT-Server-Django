@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework_simplejwt.tokens import RefreshToken
-
+from rest_framework.generics import GenericAPIView
 from .tasks import (
     perform_evaluation,
     combine_audio,
@@ -159,15 +159,15 @@ class TranscriptViewSet(viewsets.ModelViewSet):
 @permission_classes([IsAuthenticated])
 def combine_and_upload_audio(request):
     user = request.user
-    audio_files = request.FILES.getlist("audio_files")
+    audios = request.FILES.getlist("audios")
 
-    if not audio_files:
+    if not audios:
         return Response(
             {"error": "No audio files provided"}, status=status.HTTP_400_BAD_REQUEST
         )
 
     # Call a function to combine the audio files
-    combined_audio, combined_audio_format = combine_audio(audio_files)
+    combined_audio, combined_audio_format = combine_audio(audios)
 
     # Create a ContentFile for the combined audio
     combined_file_content = ContentFile(combined_audio)
@@ -179,7 +179,7 @@ def combine_and_upload_audio(request):
     )  # Convert milliseconds to seconds
 
     # Generate a filename for the combined audio file
-    combined_filename = generate_combined_filename(audio_files, combined_audio_format)
+    combined_filename = generate_combined_filename(audios, combined_audio_format)
 
     # Create a new AudioFile instance with the combined audio
     combined_audio_file = AudioFile(
@@ -193,12 +193,8 @@ def combine_and_upload_audio(request):
     # Save the AudioFile instance
     combined_audio_file.save()
 
-    return Response(
-        {
-            "message": "Audio files combined successfully",
-            "combined_audio_file_id": combined_audio_file.id,
-        }
-    )
+    response_serializer = AudioFileSerializer(combined_audio_file)
+    return Response(response_serializer.data)
 
 
 # User registration view

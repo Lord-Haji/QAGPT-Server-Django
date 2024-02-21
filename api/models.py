@@ -1,3 +1,4 @@
+import os
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -88,6 +89,11 @@ class AudioFile(models.Model):
 
     def __str__(self):
         return f"Audio File: {self.file_name} (User: {self.user.username})"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.file_name = os.path.basename(self.audio.name)
+        super().save(update_fields=["file_name"])
 
 
 class Transcript(models.Model):
