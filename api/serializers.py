@@ -61,9 +61,24 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class VocabularySerializer(serializers.ModelSerializer):
+    """
+    Serializer for the Vocabulary model.
+
+    Attributes:
+        words (List[str]): List of words associated with the vocabulary.
+
+    Meta:
+        model (Vocabulary): The Vocabulary model.
+        fields (List[str]): List of fields to include in the serialized representation.
+        read_only_fields (List[str]): List of fields that should be read-only.
+    """
+
+    words = serializers.ListField(child=serializers.CharField(max_length=100))
+
     class Meta:
         model = Vocabulary
-        fields = ["id", "words"]
+        fields = ["id", "user", "words"]
+        read_only_fields = ["user"]
 
 
 scorecard_schema = {
@@ -109,7 +124,18 @@ class ScorecardSerializer(serializers.ModelSerializer):
         validate_questions: Validates the questions field of the serialized data.
     """
 
-    category = CategorySerializer(read_only=True)
+    category = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(), allow_null=True, required=False
+    )
+
+    def validate_category(self, value):
+        if value is not None:
+            user = self.context["request"].user
+            if value.user != user:
+                raise serializers.ValidationError(
+                    "You cannot assign a category that does not belong to you."
+                )
+        return value
 
     class Meta:
         model = Scorecard

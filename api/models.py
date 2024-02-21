@@ -6,14 +6,18 @@ def user_directory_path(instance, filename, subfolder):
     # File will be uploaded to MEDIA_ROOT/user_<name>/<subfolder>/<filename>
     return f"{instance.user.username}/{subfolder}/{filename}"
 
+
 def upload_to_knowledge_bases(instance, filename):
     return user_directory_path(instance, filename, "knowledge_bases")
+
 
 def upload_to_audio_files(instance, filename):
     return user_directory_path(instance, filename, "audio_files")
 
+
 def upload_to_evaluation_reports(instance, filename):
     return user_directory_path(instance, filename, "evaluation_reports")
+
 
 class Category(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -149,7 +153,9 @@ class Evaluation(models.Model):
     audio_file = models.ForeignKey(AudioFile, on_delete=models.CASCADE, null=True)
     scorecard = models.ForeignKey(Scorecard, on_delete=models.CASCADE, null=True)
     result = models.JSONField()
-    pdf_report = models.FileField(upload_to=upload_to_evaluation_reports, null=True, blank=True)
+    pdf_report = models.FileField(
+        upload_to=upload_to_evaluation_reports, null=True, blank=True
+    )
     status = models.CharField(
         max_length=10, choices=StatusChoices.choices, default=StatusChoices.PENDING
     )
