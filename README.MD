@@ -31,6 +31,14 @@ Before setting up the project, ensure you have Python and `make` installed on yo
   scoop install make
   ```
 
+### Set Environment Variables
+
+Before installing the project, you need to set the following environment variables:
+
+- `ASSEMBLYAI_API_KEY`: Your AssemblyAI API key.
+- `GOOGLE_API_KEY`: Your GoogleGenAI API key.
+- `OPENAI_API_KEY`: Your OpenAI API key.
+
 ## Installation
 
 ### Install Poetry
