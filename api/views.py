@@ -11,7 +11,6 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.generics import GenericAPIView
 from .tasks import (
     perform_evaluation,
     combine_audio,
