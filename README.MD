@@ -33,7 +33,7 @@ Before setting up the project, ensure you have Python and `make` installed on yo
 
 ### Set Environment Variables
 
-Before installing the project, you need to set the following environment variables:
+Before running the project, you need to set the following environment variables:
 
 - `ASSEMBLYAI_API_KEY`: Your AssemblyAI API key.
 - `GOOGLE_API_KEY`: Your GoogleGenAI API key.
