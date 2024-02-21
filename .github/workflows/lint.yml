@@ -5,9 +5,9 @@ name: lint
 
 on:
   push:
-    branches: [ "main", "aai", "langchain" ]
+    branches: [ "main", "aai", "langchain", "2fa_trial" ]
   pull_request:
-    branches: [ "main", "aai", "langchain" ]
+    branches: [ "main", "aai", "langchain", "2fa_trial" ]
 
 permissions:
   contents: read
