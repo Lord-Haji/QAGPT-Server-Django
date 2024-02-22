@@ -117,6 +117,7 @@ Follow these steps to get the application running:
 
 ## TODO
 
+- Implement 2FA with [django-two-factor-auth](https://github.com/jazzband/django-two-factor-auth/tree/master/example)
 - Implement and configure unit tests.
 
 ## Author
