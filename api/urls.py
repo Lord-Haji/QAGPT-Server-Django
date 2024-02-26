@@ -1,4 +1,4 @@
-from django.urls import path, include
+from django.urls import path, include, re_path
 from rest_framework.routers import DefaultRouter
 from .views import (
     CategoryViewSet,
@@ -36,6 +36,10 @@ urlpatterns = [
     path("token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("token/blacklist/", TokenBlacklistView.as_view(), name="token_blacklist"),
+
+    re_path(r'^auth/', include('trench.urls')),
+    re_path(r'^auth/', include('trench.urls.jwt')),
+    
     path(
         "combine_and_upload_audio/",
         combine_and_upload_audio,

@@ -96,6 +96,20 @@ yarl = ">=1.0,<2.0"
 speedups = ["Brotli", "aiodns", "brotlicffi"]
 
 [[package]]
+name = "aiohttp-retry"
+version = "2.8.3"
+description = "Simple retry client for aiohttp"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "aiohttp_retry-2.8.3-py3-none-any.whl", hash = "sha256:3aeeead8f6afe48272db93ced9440cf4eda8b6fd7ee2abb25357b7eb28525b45"},
+    {file = "aiohttp_retry-2.8.3.tar.gz", hash = "sha256:9a8e637e31682ad36e1ff9f8bcba912fcfc7d7041722bc901a4b948da4d71ea9"},
+]
+
+[package.dependencies]
+aiohttp = "*"
+
+[[package]]
 name = "aiosignal"
 version = "1.3.1"
 description = "aiosignal: a list of registered asynchronous callbacks"
@@ -656,6 +670,26 @@ files = [
 [package.dependencies]
 asgiref = ">=3.6"
 Django = ">=3.2"
+
+[[package]]
+name = "django-trench"
+version = "0.3.1"
+description = "REST Multi-factor authentication package for Django"
+optional = false
+python-versions = "*"
+files = [
+    {file = "django-trench-0.3.1.tar.gz", hash = "sha256:ee667681b62c3ab057754419e15c68df93556e586781e4382277ec094e2bc2aa"},
+    {file = "django_trench-0.3.1-py3-none-any.whl", hash = "sha256:1bca8eec1900187f8e5b7b6c63adfa5714258a41d8bdb83d1bee12645cc0cadf"},
+]
+
+[package.dependencies]
+pyotp = ">=2.6.0"
+smsapi-client = ">=2.4.5"
+twilio = ">=6.56.0"
+yubico-client = ">=1.13.0"
+
+[package.extras]
+docs = ["sphinx (>=1.4)", "sphinx-rtd-theme"]
 
 [[package]]
 name = "djangorestframework"
@@ -2183,6 +2217,20 @@ docs = ["sphinx (>=4.5.0,<5.0.0)", "sphinx-rtd-theme", "zope.interface"]
 tests = ["coverage[toml] (==5.0.4)", "pytest (>=6.0.0,<7.0.0)"]
 
 [[package]]
+name = "pyotp"
+version = "2.9.0"
+description = "Python One Time Password Library"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "pyotp-2.9.0-py3-none-any.whl", hash = "sha256:81c2e5865b8ac55e825b0358e496e1d9387c811e85bb40e71a3b29b288963612"},
+    {file = "pyotp-2.9.0.tar.gz", hash = "sha256:346b6642e0dbdde3b4ff5a930b664ca82abfa116356ed48cc42c7d6590d36f63"},
+]
+
+[package.extras]
+test = ["coverage", "mypy", "ruff", "wheel"]
+
+[[package]]
 name = "pypdf"
 version = "4.0.2"
 description = "A pure-python PDF library capable of splitting, merging, cropping, and transforming PDF files"
@@ -2469,6 +2517,20 @@ files = [
 ]
 
 [[package]]
+name = "smsapi-client"
+version = "2.9.5"
+description = "SmsAPI client"
+optional = false
+python-versions = "*"
+files = [
+    {file = "smsapi-client-2.9.5.tar.gz", hash = "sha256:dd4c1da4ce2fbc52fd99bb9d640c98e2e5029ae6fb7b3c36371c5764ee2c08f6"},
+    {file = "smsapi_client-2.9.5-py2.py3-none-any.whl", hash = "sha256:9b5c21d3d6ed23dd40f10964402ee66e0de365ea47e7c109902ef031f8754130"},
+]
+
+[package.dependencies]
+requests = "*"
+
+[[package]]
 name = "sniffio"
 version = "1.3.0"
 description = "Sniff out which async library your code is running under"
@@ -2633,6 +2695,23 @@ dev = ["pytest (>=6)", "pytest-cov", "pytest-timeout", "pytest-xdist"]
 notebook = ["ipywidgets (>=6)"]
 slack = ["slack-sdk"]
 telegram = ["requests"]
+
+[[package]]
+name = "twilio"
+version = "8.13.0"
+description = "Twilio API client and TwiML generator"
+optional = false
+python-versions = ">=3.7.0"
+files = [
+    {file = "twilio-8.13.0-py2.py3-none-any.whl", hash = "sha256:f5396e355de11b80c6729bd286fdc0e12c9c0b025c465f16f090034a7ef88d3d"},
+    {file = "twilio-8.13.0.tar.gz", hash = "sha256:89f629fa280b51bc21cd58b35cf640f9bbf88efd3977c0c5ec6ea6821b9880cd"},
+]
+
+[package.dependencies]
+aiohttp = ">=3.8.4"
+aiohttp-retry = ">=2.8.3"
+PyJWT = ">=2.0.0,<3.0.0"
+requests = ">=2.0.0"
 
 [[package]]
 name = "typing-extensions"
@@ -2919,6 +2998,20 @@ idna = ">=2.0"
 multidict = ">=4.0"
 
 [[package]]
+name = "yubico-client"
+version = "1.13.0"
+description = "Library for verifying Yubikey One Time Passwords (OTPs)"
+optional = false
+python-versions = "*"
+files = [
+    {file = "yubico-client-1.13.0.tar.gz", hash = "sha256:e3b86cd2a123105edfacad40551c7b26e9c1193d81ffe168ee704ebfd3d11162"},
+    {file = "yubico_client-1.13.0-py2.py3-none-any.whl", hash = "sha256:59d818661f638e3f041fae44ba2c0569e4eb2a17865fa7cc9ad6577185c4d185"},
+]
+
+[package.dependencies]
+requests = ">=2.7,<3.0"
+
+[[package]]
 name = "zopfli"
 version = "0.2.3"
 description = "Zopfli module for python"
@@ -2994,4 +3087,4 @@ test = ["pytest"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "c215b80961eb1dbd01b6e78e1580fe902a2d3ecafaa47358cea25b21ac451333"
+content-hash = "af75e79e39edee80c4fb8a8ae41ad0d8bc7423530130b40a5ae8df24fb9d900b"
