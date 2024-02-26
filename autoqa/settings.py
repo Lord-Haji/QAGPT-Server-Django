@@ -112,7 +112,7 @@ TRENCH_AUTH = {
             "EMAIL_PLAIN_TEMPLATE": "trench/backends/email/code.txt",
             "EMAIL_HTML_TEMPLATE": "trench/backends/email/code.html",
         },
-    }
+    },
 }
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
