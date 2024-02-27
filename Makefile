@@ -2,14 +2,8 @@
 
 # Setup poetry and install dependencies
 install:
-	@echo "Installing Poetry and project dependencies..."
-	curl -sSL https://install.python-poetry.org | python -
+	@echo "Installing Project dependencies..."
 	poetry install
-
-# Activate poetry shell
-shell:
-	@echo "Activating the poetry shell..."
-	poetry shell
 
 # Database migrations
 migrations:
