@@ -1,19 +1,19 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
+    register,
+    user_profile_view,
     CategoryViewSet,
     ScorecardViewSet,
     AudioFileViewSet,
     VocabularyViewSet,
     KnowledgeBaseViewSet,
     TranscriptViewSet,
-    register,
     evaluate_audio_files,
     evaluate_audio_files_auto,
     get_evaluation,
     combine_and_upload_audio,
     generate_and_retrieve_evaluation_report,
-    user_evaluation_stats_view,
 )
 
 from rest_framework_simplejwt.views import (
@@ -32,11 +32,12 @@ router.register(r"transcripts", TranscriptViewSet)
 urlpatterns = [
     path("", include(router.urls)),
     path("register/", register, name="register"),
+    path("auth/", include("trench.urls")),
+    path("auth/", include("trench.urls.jwt")),
     # path("token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("token/blacklist/", TokenBlacklistView.as_view(), name="token_blacklist"),
-    path("auth/", include("trench.urls")),
-    path("auth/", include("trench.urls.jwt")),
+    path("user/profile/", user_profile_view, name="user-profile"),
     path(
         "combine_and_upload_audio/",
         combine_and_upload_audio,
@@ -56,10 +57,5 @@ urlpatterns = [
         "evaluation/<int:evaluation_id>/report/",
         generate_and_retrieve_evaluation_report,
         name="generate_and_retrieve_evaluation_report",
-    ),
-    path(
-        "user-evaluation-stats/",
-        user_evaluation_stats_view,
-        name="user-evaluation-stats",
     ),
 ]
