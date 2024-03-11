@@ -266,7 +266,7 @@ def transcribe(audio_file_object):
             custom_words = []
 
         config = aai.TranscriptionConfig(
-            word_boost=custom_words, speaker_labels=True, speakers_expected=2
+            word_boost=custom_words, speaker_labels=True
         ).set_redact_pii(
             policies=[
                 aai.PIIRedactionPolicy.credit_card_number,
