@@ -17,7 +17,38 @@ from jsonschema.exceptions import ValidationError
 import json
 
 
-class UserSerializer(serializers.ModelSerializer):
+class UserRegistrationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["username", "password", "first_name", "last_name", "email"]
+        extra_kwargs = {
+            "password": {"write_only": True},
+            "first_name": {"required": True},
+            "last_name": {"required": True},
+            "email": {"required": True},
+        }
+
+    def validate(self, data):
+        """
+        Check that the first name, last name, and email are not empty.
+        """
+        if not data.get("first_name"):
+            raise serializers.ValidationError(
+                {"first_name": "This field may not be blank."}
+            )
+        if not data.get("last_name"):
+            raise serializers.ValidationError(
+                {"last_name": "This field may not be blank."}
+            )
+        if not data.get("email"):
+            raise serializers.ValidationError({"email": "This field may not be blank."})
+        return data
+
+    def create(self, validated_data):
+        return User.objects.create_user(**validated_data)
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
     total_evaluated_duration = serializers.SerializerMethodField()
     total_evaluated_files = serializers.SerializerMethodField()
 
@@ -25,18 +56,18 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             "username",
-            "password",
+            "first_name",
+            "last_name",
             "email",
             "total_evaluated_duration",
             "total_evaluated_files",
         ]
-        extra_kwargs = {"password": {"write_only": True}}
 
     def get_total_evaluated_duration(self, user):
-        return get_user_evaluation_stats(user)["total_minutes"]
+        return get_user_evaluation_stats(user).get("total_minutes", 0)
 
     def get_total_evaluated_files(self, user):
-        return get_user_evaluation_stats(user)["total_files"]
+        return get_user_evaluation_stats(user).get("total_files", 0)
 
 
 class CategorySerializer(serializers.ModelSerializer):

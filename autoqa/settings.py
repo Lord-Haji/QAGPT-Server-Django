@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 from datetime import timedelta
 import os
+import string
+from django.utils.translation import gettext_lazy as _
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -42,6 +44,7 @@ INSTALLED_APPS = [
     "api",
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
+    "trench",
     "corsheaders",
     "drf_spectacular",
 ]
@@ -82,6 +85,44 @@ LOGGING = {
     },
 }
 
+SPECTACULAR_SETTINGS = {
+    "TITLE": "QAGPT",
+}
+
+TRENCH_AUTH = {
+    "USER_MFA_MODEL": "trench.MFAMethod",
+    "USER_ACTIVE_FIELD": "is_active",
+    "BACKUP_CODES_QUANTITY": 5,
+    "BACKUP_CODES_LENGTH": 12,
+    "BACKUP_CODES_CHARACTERS": (string.ascii_letters + string.digits),
+    "SECRET_KEY_LENGTH": 32,
+    "DEFAULT_VALIDITY_PERIOD": 30,
+    "CONFIRM_DISABLE_WITH_CODE": False,
+    "CONFIRM_BACKUP_CODES_REGENERATION_WITH_CODE": True,
+    "ALLOW_BACKUP_CODES_REGENERATION": True,
+    "ENCRYPT_BACKUP_CODES": True,
+    "APPLICATION_ISSUER_NAME": "MyApplication",
+    "MFA_METHODS": {
+        "email": {
+            "VERBOSE_NAME": _("email"),
+            "VALIDITY_PERIOD": 60 * 20,
+            "HANDLER": "trench.backends.basic_mail.SendMailMessageDispatcher",
+            "SOURCE_FIELD": "email",
+            "EMAIL_SUBJECT": _("Your verification code"),
+            "EMAIL_PLAIN_TEMPLATE": "trench/backends/email/code.txt",
+            "EMAIL_HTML_TEMPLATE": "trench/backends/email/code.html",
+        },
+    },
+}
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.hostinger.com"
+EMAIL_USE_SSL = True
+EMAIL_PORT = 465
+EMAIL_HOST_USER = "2fa@pixelstreet.co.in"
+EMAIL_HOST_PASSWORD = "Nopass@12345%"
+DEFAULT_FROM_EMAIL = "2fa@pixelstreet.co.in"
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
@@ -89,9 +130,6 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
-SPECTACULAR_SETTINGS = {
-    "TITLE": "QAGPT",
-}
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),

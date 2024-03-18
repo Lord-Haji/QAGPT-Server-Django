@@ -2,7 +2,6 @@ import threading
 import os
 from pydub import AudioSegment
 import io
-from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.http import FileResponse
 from rest_framework import viewsets, status
@@ -16,7 +15,6 @@ from .tasks import (
     combine_audio,
     generate_combined_filename,
     generate_pdf_report_for_evaluation,
-    get_user_evaluation_stats,
 )
 from .models import (
     Category,
@@ -30,7 +28,8 @@ from .models import (
     Evaluation,
 )
 from .serializers import (
-    UserSerializer,
+    UserRegistrationSerializer,
+    UserProfileSerializer,
     CategorySerializer,
     VocabularySerializer,
     ScorecardSerializer,
@@ -40,6 +39,38 @@ from .serializers import (
     TranscriptSerializer,
     AudioFileSerializer,
 )
+
+
+# User registration view
+@api_view(["POST"])
+def register(request):
+    serializer = UserRegistrationSerializer(data=request.data)
+    if serializer.is_valid():
+        user = serializer.save()
+        refresh = RefreshToken.for_user(user)
+        return Response(
+            {
+                "user": {
+                    "username": user.username,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                    "email": user.email,
+                },
+                "refresh": str(refresh),
+                "access": str(refresh.access_token),
+            },
+            status=status.HTTP_201_CREATED,
+        )
+    else:
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def user_profile_view(request):
+    user = request.user
+    serializer = UserProfileSerializer(user)
+    return Response(serializer.data)
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -196,22 +227,6 @@ def combine_and_upload_audio(request):
     return Response(response_serializer.data)
 
 
-# User registration view
-@api_view(["POST"])
-def register(request):
-    serializer = UserSerializer(data=request.data)
-    if serializer.is_valid():
-        user = User.objects.create_user(**serializer.validated_data)
-        refresh = RefreshToken.for_user(user)
-        return Response(
-            {
-                "refresh": str(refresh),
-                "access": str(refresh.access_token),
-            }
-        )
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
 # Currently uses multi level threading
 # for concurrently running transcription and evaluation.
 # Revert to a queue based system for better scalability.
@@ -273,36 +288,6 @@ def evaluate_audio_files_auto(request):
     return Response(serializer.data)
 
 
-# Legacy evaluate_audio_files
-#
-# @api_view(["POST"])
-# @permission_classes([IsAuthenticated])
-# def evaluate_audio_files(request):
-#     user = request.user
-#     audio_file_ids = request.data.get("audio_file_ids", [])
-#     scorecard_id = request.data.get("scorecard_id")
-
-#     audio_files = AudioFile.objects.filter(id__in=audio_file_ids, user=user)
-#     scorecard = Scorecard.objects.get(id=scorecard_id, user=user)
-
-#     # Create a placeholder evaluation object
-#     evaluation = Evaluation.objects.create(
-#         user=user,
-#         scorecard=scorecard,
-#         scorecard_title=scorecard.title,
-#         result={"status": "processing"},
-#     )
-#     evaluation.audio_files.set(audio_files)
-
-#     # Start the evaluation in a background thread
-#     evaluation_thread = threading.Thread(target=perform_evaluation, args=(user, audio_file_ids, scorecard_id, evaluation)) # noqa
-#     evaluation_thread.start()
-
-#     # Return the evaluation job ID immediately
-#     serializer = EvaluationSerializer(evaluation)
-#     return Response(serializer.data)
-
-
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_evaluation(request, evaluation_job_id):
@@ -318,31 +303,6 @@ def get_evaluation(request, evaluation_job_id):
 
     except EvaluationJob.DoesNotExist:
         return Response({"error": "Evaluation Job not found"}, status=404)
-
-
-# Preserve legacy unused code
-#
-# @api_view(["GET"])
-# @permission_classes([IsAuthenticated])
-# def generate_and_retrieve_report(request, evaluation_id):
-#     try:
-#         evaluation = Evaluation.objects.get(id=evaluation_id, user=request.user)
-#     except Evaluation.DoesNotExist:
-#         return Response({"error": "Evaluation not found"}, status=404)
-
-#     # Generate the report if it doesn't exist
-#     if not evaluation.pdf_report:
-#         report_path = generate_pdf_report(evaluation)
-#         evaluation.pdf_report.save(
-#             report_path,
-#             File(open(os.path.join(settings.MEDIA_ROOT, report_path), "rb")),
-#         )
-#         evaluation.save()
-
-#     # Serve the PDF file as a response
-#     return FileResponse(
-#         evaluation.pdf_report, as_attachment=True, filename=evaluation.pdf_report.name
-#     )
 
 
 @api_view(["GET"])
@@ -370,11 +330,3 @@ def generate_and_retrieve_evaluation_report(request, evaluation_id):
         return Response({"error": "Evaluation not found"}, status=404)
     except FileNotFoundError:
         return Response({"error": "File not found"}, status=404)
-
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def user_evaluation_stats_view(request):
-    user = request.user
-    stats = get_user_evaluation_stats(user)
-    return Response(stats)
